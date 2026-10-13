@@ -38,6 +38,7 @@
 :root{
   --space-none:0px; --space-2xs:2px; --space-sm:8px; --space-lg:16px; --space-xl:24px;
   --radius-xs:2px;
+  --chev-down:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5'/%3E%3C/svg%3E");
   --font-base:"Atkinson Hyperlegible Next",system-ui,sans-serif;
   --font-heading:"Inclusive Sans",system-ui,sans-serif;
 }
@@ -60,11 +61,21 @@ html[data-mode="dark"]{color-scheme:dark}
   display:flex; flex-wrap:wrap; gap:18px; align-items:center; font-size:14px;
 }
 .chrome label{display:flex; gap:7px; align-items:center; cursor:pointer}
-.chrome select{font:inherit; font-family:var(--font-base); padding:5px 28px 5px 8px;
+.chrome select{font:inherit; font-family:var(--font-base);
+  appearance:none; -webkit-appearance:none;
+  padding:5px 30px 5px 9px;
   border-radius:4px; border:1px solid var(--stroke-base);
   background:var(--bg-muted); color:var(--text-base);
   max-width:170px; text-overflow:ellipsis; cursor:pointer}
 .chrome option{background:var(--bg-container); color:var(--text-base)}
+/* single chevron-down, masked so it inherits the theme text colour */
+.selwrap{position:relative; display:inline-flex; align-items:center}
+.selwrap::after{
+  content:""; position:absolute; right:8px; width:16px; height:16px;
+  pointer-events:none; background:currentColor;
+  -webkit-mask:var(--chev-down) center/16px 16px no-repeat;
+  mask:var(--chev-down) center/16px 16px no-repeat;
+}
 .chrome select:focus-visible,
 .chrome .seg button:focus-visible,
 .chrome input:focus-visible{outline:2px solid var(--stroke-info); outline-offset:2px}
@@ -245,12 +256,12 @@ html[data-mode="dark"]{color-scheme:dark}
 <!-- ============ review controls (not part of the component) ============ -->
 <div class="chrome">
   <label>Theme mode
-    <select id="modeSel">
+    <span class="selwrap"><select id="modeSel">
       <option value="light">light</option>
       <option value="dark">dark</option>
       <option value="legacyCanvas">legacy canvas</option>
       <option value="legacyCanvasHighContrast">legacy canvas HC</option>
-    </select>
+    </select></span>
   </label>
   <div class="seg" role="group" aria-label="Which variant to preview">
     <button type="button" data-view="desktop" aria-pressed="true">Desktop</button>
@@ -259,11 +270,11 @@ html[data-mode="dark"]{color-scheme:dark}
   </div>
   <label><input type="checkbox" id="countChk"> Show step count (<code>showStepCount</code>)</label>
   <label>Error on
-    <select id="errSel">
+    <span class="selwrap"><select id="errSel">
       <option value="none">no step</option>
       <option value="current">the current step</option>
       <option value="0">step 1 (passed)</option>
-    </select>
+    </select></span>
   </label>
   <label><input type="checkbox" id="greyChk"> Greyscale</label>
 </div>
