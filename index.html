@@ -49,6 +49,10 @@ body{
 }
 html.greyscale body{filter:grayscale(1)}
 
+/* native controls (select popup, checkboxes) must follow the theme */
+html{color-scheme:light}
+html[data-mode="dark"]{color-scheme:dark}
+
 /* ---------- Review chrome (not part of the component) ---------- */
 .chrome{
   position:sticky; top:0; z-index:20; background:var(--bg-container);
@@ -56,8 +60,14 @@ html.greyscale body{filter:grayscale(1)}
   display:flex; flex-wrap:wrap; gap:18px; align-items:center; font-size:14px;
 }
 .chrome label{display:flex; gap:7px; align-items:center; cursor:pointer}
-.chrome select{font:inherit; font-family:var(--font-base); padding:5px 8px; border-radius:4px;
-  border:1px solid var(--stroke-base); background:var(--bg-muted); color:var(--text-base)}
+.chrome select{font:inherit; font-family:var(--font-base); padding:5px 28px 5px 8px;
+  border-radius:4px; border:1px solid var(--stroke-base);
+  background:var(--bg-muted); color:var(--text-base);
+  max-width:170px; text-overflow:ellipsis; cursor:pointer}
+.chrome option{background:var(--bg-container); color:var(--text-base)}
+.chrome select:focus-visible,
+.chrome .seg button:focus-visible,
+.chrome input:focus-visible{outline:2px solid var(--stroke-info); outline-offset:2px}
 .chrome .seg{display:flex; border:1px solid var(--stroke-base); border-radius:6px; overflow:hidden}
 .chrome .seg button{
   font:inherit; font-family:var(--font-base); padding:6px 14px; border:0; cursor:pointer;
@@ -130,6 +140,9 @@ html.greyscale body{filter:grayscale(1)}
 .stepper--horizontal > li.step--error .rail{height:4px; justify-content:center}
 .stepper--horizontal > li.step--notStarted .rail i,
 .stepper--horizontal > li.step--error .rail i{height:2px; background:var(--stroke-base)}
+/* only the outer ends of the whole rail are rounded (Figma I36583:33399 / I36583:33405) */
+.stepper--horizontal > li:first-child .rail i{border-top-left-radius:var(--radius-xs); border-bottom-left-radius:var(--radius-xs)}
+.stepper--horizontal > li:last-child .rail i{border-top-right-radius:var(--radius-xs); border-bottom-right-radius:var(--radius-xs)}
 .stepper--horizontal .step__body{
   display:flex; gap:var(--space-sm); align-items:flex-start;
   padding:0 var(--space-lg) 0 var(--space-none); width:100%;
@@ -235,8 +248,8 @@ html.greyscale body{filter:grayscale(1)}
     <select id="modeSel">
       <option value="light">light</option>
       <option value="dark">dark</option>
-      <option value="legacyCanvas">legacyCanvas</option>
-      <option value="legacyCanvasHighContrast">legacyCanvasHighContrast</option>
+      <option value="legacyCanvas">legacy canvas</option>
+      <option value="legacyCanvasHighContrast">legacy canvas HC</option>
     </select>
   </label>
   <div class="seg" role="group" aria-label="Which variant to preview">
@@ -249,7 +262,7 @@ html.greyscale body{filter:grayscale(1)}
     <select id="errSel">
       <option value="none">no step</option>
       <option value="current">the current step</option>
-      <option value="0">step 1 (already passed)</option>
+      <option value="0">step 1 (passed)</option>
     </select>
   </label>
   <label><input type="checkbox" id="greyChk"> Greyscale</label>
