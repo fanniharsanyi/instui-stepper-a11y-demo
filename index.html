@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>InstUI Stepper — accessibility review flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;700&family=Inclusive+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ---------- Theme modes: values resolved from the Figma "Modes" collection ---------- */
+[data-mode="light"]{
+  --stroke-base:#8d959f; --stroke-info:#2b7abc; --stroke-error:#e62429;
+  --bg-muted:#f2f4f5; --bg-container:#ffffff;
+  --text-base:#273540; --text-muted:#576773; --text-error:#c51f22;
+  --btn2-bg:rgba(68,112,159,.2); --btn2-border:rgba(68,112,159,0);
+}
+[data-mode="dark"]{
+  --stroke-base:#6a7883; --stroke-info:#2b7abc; --stroke-error:#e62429;
+  --bg-muted:#273540; --bg-container:#1c222b;
+  --text-base:#f2f4f5; --text-muted:#aab0b5; --text-error:#fa917f;
+  --btn2-bg:rgba(134,168,213,.3); --btn2-border:rgba(134,168,213,0);
+}
+[data-mode="legacyCanvas"]{
+  --stroke-base:#8d959f; --stroke-info:#2b7abc; --stroke-error:#e62429;
+  --bg-muted:#f2f4f5; --bg-container:#ffffff;
+  --text-base:#273540; --text-muted:#576773; --text-error:#c51f22;
+  --btn2-bg:#f2f4f5; --btn2-border:#d6dde0;
+}
+[data-mode="legacyCanvasHighContrast"]{
+  --stroke-base:#6a7883; --stroke-info:#1a5281; --stroke-error:#991418;
+  --bg-muted:#f2f4f5; --bg-container:#ffffff;
+  --text-base:#273540; --text-muted:#3f515e; --text-error:#991418;
+  --btn2-bg:#f2f4f5; --btn2-border:#d6dde0;
+}
+
+/* ---------- Spacing tokens ---------- */
+:root{
+  --space-none:0px; --space-2xs:2px; --space-sm:8px; --space-lg:16px; --space-xl:24px;
+  --radius-xs:2px;
+  --font-base:"Atkinson Hyperlegible Next",system-ui,sans-serif;
+  --font-heading:"Inclusive Sans",system-ui,sans-serif;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:var(--font-base); background:var(--bg-muted); color:var(--text-base);
+  -webkit-font-smoothing:antialiased;
+}
+html.greyscale body{filter:grayscale(1)}
+
+/* ---------- Review chrome (not part of the component) ---------- */
+.chrome{
+  position:sticky; top:0; z-index:20; background:var(--bg-container);
+  border-bottom:1px solid var(--stroke-base); padding:12px 20px;
+  display:flex; flex-wrap:wrap; gap:18px; align-items:center; font-size:14px;
+}
+.chrome label{display:flex; gap:7px; align-items:center; cursor:pointer}
+.chrome select{font:inherit; font-family:var(--font-base); padding:5px 8px; border-radius:4px;
+  border:1px solid var(--stroke-base); background:var(--bg-muted); color:var(--text-base)}
+.chrome .seg{display:flex; border:1px solid var(--stroke-base); border-radius:6px; overflow:hidden}
+.chrome .seg button{
+  font:inherit; font-family:var(--font-base); padding:6px 14px; border:0; cursor:pointer;
+  background:var(--bg-muted); color:var(--text-base);
+}
+.chrome .seg button[aria-pressed="true"]{background:var(--stroke-info); color:#fff}
+.chrome code{font-family:ui-monospace,monospace; font-size:12px}
+.wrap{max-width:1180px; margin:0 auto; padding:28px 20px 80px}
+.note{font-size:14px; color:var(--text-muted); line-height:1.5; max-width:70ch; margin:0 0 22px}
+
+/* ---------- Visually hidden (the SR-only text the demo is really about) ---------- */
+.vh{position:absolute!important; width:1px; height:1px; margin:-1px; padding:0;
+  overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0}
+
+/* =======================================================================
+   STEPPER — geometry transcribed from Figma
+   .verticalStep  36583:33345   .horizontalStep 36583:33300
+   .compactStep   38696:10239   Stepper (compact) 38681:11708
+   ======================================================================= */
+.stepper{list-style:none; margin:0; padding:0}
+
+/* icons: 20px, stroke carries currentColor */
+.ind{width:20px; height:20px; display:block; flex:0 0 auto}
+.ind svg{display:block; width:20px; height:20px}
+.step--completed .ind,.step--current .ind,.step--notStarted .ind{color:var(--text-base)}
+.step--error .ind{color:var(--text-error)}
+
+/* shared text block */
+.step__text{
+  display:flex; flex-direction:column; align-items:flex-start; justify-content:center;
+  flex:1 0 0; min-width:1px; word-break:break-word;
+  font-weight:400; line-height:1.5;
+}
+.step--current .step__text{gap:4px}
+.step__count{font-size:12px; color:var(--text-base); width:100%;
+  overflow:hidden; text-overflow:ellipsis; margin:0}
+.step__title{font-size:16px; color:var(--text-base); width:100%;
+  overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.5; font-weight:400}
+.step--current .step__title{font-family:var(--font-heading); font-weight:700; line-height:1.25}
+.step__label{font-size:14px; color:var(--text-muted); width:100%;
+  overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.5}
+.step--error .step__label{color:var(--text-error)}
+/* icon column has 2px top padding in the component */
+.step__icon{display:flex; align-items:center; padding-top:var(--space-2xs); flex:0 0 auto}
+
+/* ---------- VERTICAL: 4px rail down the left edge, full height of the step ---------- */
+.stepper--vertical{display:flex; flex-direction:column; align-items:flex-start; width:250px}
+.stepper--vertical > li{display:flex; gap:var(--space-sm); align-items:flex-start; width:100%}
+.stepper--vertical .rail{display:flex; align-items:center; align-self:stretch; flex:0 0 auto}
+.stepper--vertical .rail i{display:block; height:100%; width:4px; background:var(--stroke-info)}
+/* notStarted + error: narrower 2px rail in stroke/base, centred in the 4px column */
+.stepper--vertical > li.step--notStarted .rail,
+.stepper--vertical > li.step--error .rail{justify-content:center; width:4px}
+.stepper--vertical > li.step--notStarted .rail i,
+.stepper--vertical > li.step--error .rail i{width:2px; background:var(--stroke-base)}
+.stepper--vertical > li:first-child .rail i{border-top-left-radius:var(--radius-xs); border-top-right-radius:var(--radius-xs)}
+.stepper--vertical > li:last-child .rail i{border-bottom-left-radius:var(--radius-xs); border-bottom-right-radius:var(--radius-xs)}
+.stepper--vertical .step__body{
+  display:flex; gap:var(--space-sm); align-items:flex-start;
+  padding:0 var(--space-lg) var(--space-xl) var(--space-none); flex:1 0 0; min-width:1px;
+}
+
+/* ---------- HORIZONTAL: 4px bar across the top of each 131px column ---------- */
+.stepper--horizontal{display:flex; align-items:flex-start; width:100%}
+.stepper--horizontal > li{display:flex; flex-direction:column; gap:var(--space-sm);
+  align-items:flex-start; flex:1 0 0; min-width:1px}
+.stepper--horizontal .rail{display:flex; flex-direction:column; align-items:flex-start; width:100%}
+.stepper--horizontal .rail i{display:block; width:100%; height:4px; background:var(--stroke-info)}
+.stepper--horizontal > li.step--notStarted .rail,
+.stepper--horizontal > li.step--error .rail{height:4px; justify-content:center}
+.stepper--horizontal > li.step--notStarted .rail i,
+.stepper--horizontal > li.step--error .rail i{height:2px; background:var(--stroke-base)}
+.stepper--horizontal .step__body{
+  display:flex; gap:var(--space-sm); align-items:flex-start;
+  padding:0 var(--space-lg) 0 var(--space-none); width:100%;
+}
+/* titles truncate to one line in horizontal — this is the truncation case under discussion */
+.stepper--horizontal .step__count,
+.stepper--horizontal .step__title,
+.stepper--horizontal .step__label{white-space:nowrap}
+
+/* ---------- COMPACT: summary line + equal segment bar ---------- */
+.compact{display:flex; flex-direction:column; gap:var(--space-sm); width:100%}
+.compact__content{display:flex; flex-direction:column; gap:2px; align-items:flex-start;
+  width:100%; word-break:break-word}
+.compact__count{font-size:12px; color:var(--text-base); margin:0; line-height:1.5}
+.compact__line{display:flex; gap:var(--space-sm); align-items:baseline; width:100%; white-space:nowrap}
+.compact__title{font-family:var(--font-heading); font-weight:700; line-height:1.25;
+  font-size:16px; color:var(--text-base); margin:0; overflow:hidden; text-overflow:ellipsis}
+.compact__label{font-size:14px; color:var(--text-muted); margin:0; line-height:1.5;
+  overflow:hidden; text-overflow:ellipsis}
+.stepper--compact{display:flex; gap:var(--space-sm); align-items:center; width:100%}
+.stepper--compact > .step{flex:1 0 0; min-width:1px; display:flex; flex-direction:column; align-items:flex-start}
+.stepper--compact > .step i{display:block; width:100%; height:4px; border-radius:2px; background:var(--stroke-info)}
+.stepper--compact > .step--notStarted i{background:var(--stroke-base)}
+.stepper--compact > .step--error i{background:var(--stroke-error)}
+
+/* ---------- MOBILE: summary button + disclosure ---------- */
+/* Figma 37272:18992 — root is flex-col, gap 16px, w 310px.
+   The summary bar is the InstUI secondary Button (37272:18953), not a card. */
+.mstepper{width:100%; display:flex; flex-direction:column; gap:var(--space-lg)}
+.mstepper__bar{
+  display:flex; gap:var(--space-sm); align-items:flex-start; width:100%; text-align:left;
+  background:var(--btn2-bg); border:1px solid var(--btn2-border); border-radius:12px;
+  padding:var(--space-sm) var(--space-lg); font:inherit; font-family:var(--font-base);
+  color:var(--text-base); cursor:pointer;
+}
+.mstepper__content{
+  display:flex; flex:1 0 0; gap:var(--space-sm); align-items:flex-start;
+  min-width:1px; overflow:clip; padding-right:var(--space-lg);
+}
+.mstepper__sum{display:flex; flex-direction:column; align-items:flex-start;
+  justify-content:center; flex:1 0 0; min-width:1px; word-break:break-word}
+.mstepper__count{font-family:var(--font-heading); font-weight:700; font-size:16px;
+  line-height:1.25; color:var(--text-base)}
+.mstepper__title{font-weight:400; font-size:16px; line-height:1.5; color:var(--text-base)}
+.mstepper__label{font-weight:400; font-size:14px; line-height:1.5; color:var(--text-muted)}
+.mstepper__chev{flex:0 0 auto; width:20px; height:20px;
+  transition:transform .15s ease; color:var(--text-base)}
+.mstepper__bar[aria-expanded="true"] .mstepper__chev{transform:rotate(180deg)}
+.mstepper__panel .stepper--vertical{width:100%}
+
+/* =======================================================================
+   Fake product chrome so the flow reads like a real page
+   ======================================================================= */
+.frame{border:1px solid var(--stroke-base); border-radius:12px; overflow:hidden}
+/* page sits on background/muted, cards on background/container — as in the mock */
+.frame--desktop{background:var(--bg-muted); padding:28px 32px 24px}
+.frame--mobile{background:var(--bg-container); width:390px; margin:0 auto; padding:16px}
+.eyebrow{font-size:12px; color:var(--text-base); margin:0 0 2px}
+.pagetitle{font-family:var(--font-heading); font-weight:700; line-height:1.25;
+  font-size:30px; margin:0 0 6px; color:var(--text-base)}
+.frame--mobile .pagetitle{font-size:24px}
+.pagedesc{font-size:16px; color:var(--text-muted); margin:0 0 22px; line-height:1.5}
+.card{background:var(--bg-container); border:1px solid var(--stroke-base);
+  border-radius:10px; padding:24px; margin:22px 0 0}
+.frame--desktop .card{background:var(--bg-container)}
+.card h3{font-family:var(--font-heading); font-weight:700; font-size:18px;
+  margin:0 0 4px; line-height:1.25; color:var(--text-base)}
+.card p{font-size:15px; line-height:1.5; color:var(--text-muted); margin:0 0 14px}
+.card p:last-child{margin-bottom:0}
+.actions{display:flex; gap:10px; justify-content:flex-end; margin-top:22px}
+.btn{font:inherit; font-family:var(--font-base); font-size:15px; padding:9px 20px;
+  border-radius:6px; border:1px solid transparent; cursor:pointer}
+.btn--ghost{background:var(--bg-muted); color:var(--text-base); border-color:var(--stroke-base)}
+.btn--primary{background:var(--text-base); color:var(--bg-container)}
+.btn[disabled]{opacity:.45; cursor:not-allowed}
+.view{display:none}
+.view.is-active{display:block}
+:focus-visible{outline:3px solid var(--stroke-info); outline-offset:2px; border-radius:3px}
+
+/* ---------- Modal (documented compact use case) ---------- */
+.backdrop{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none;
+  align-items:center; justify-content:center; z-index:30; padding:20px}
+.backdrop.is-open{display:flex}
+.modal{background:var(--bg-container); border-radius:12px; width:460px; max-width:100%;
+  padding:24px; border:1px solid var(--stroke-base); max-height:90vh; overflow:auto}
+.modal h2{font-family:var(--font-heading); font-weight:700; font-size:20px;
+  margin:0 0 4px; line-height:1.25; color:var(--text-base)}
+.modal .pagedesc{font-size:14px; margin:0 0 18px}
+.panel{background:var(--bg-muted); border:1px solid var(--stroke-base);
+  border-radius:8px; padding:18px; width:300px}
+.usecase{display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; margin-top:20px}
+.usecase h3{font-family:var(--font-heading); font-weight:700; font-size:15px;
+  margin:0 0 8px; color:var(--text-base)}
+.usecase > div{flex:0 0 auto}
+</style>
+</head>
+<body>
+
+<!-- ============ review controls (not part of the component) ============ -->
+<div class="chrome">
+  <label>Theme mode
+    <select id="modeSel">
+      <option value="light">light</option>
+      <option value="dark">dark</option>
+      <option value="legacyCanvas">legacyCanvas</option>
+      <option value="legacyCanvasHighContrast">legacyCanvasHighContrast</option>
+    </select>
+  </label>
+  <div class="seg" role="group" aria-label="Which variant to preview">
+    <button type="button" data-view="desktop" aria-pressed="true">Desktop</button>
+    <button type="button" data-view="mobile" aria-pressed="false">Mobile</button>
+    <button type="button" data-view="compact" aria-pressed="false">Compact</button>
+  </div>
+  <label><input type="checkbox" id="countChk"> Show step count (<code>showStepCount</code>)</label>
+  <label>Error on
+    <select id="errSel">
+      <option value="none">no step</option>
+      <option value="current">the current step</option>
+      <option value="0">step 1 (already passed)</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="greyChk"> Greyscale</label>
+</div>
+
+<div class="wrap">
+
+  <!-- live region: the only thing that announces a step change -->
+  <p class="vh" aria-live="polite" id="live"></p>
+
+  <!-- ================= DESKTOP (horizontal) ================= -->
+  <section class="view is-active" id="view-desktop" aria-label="Desktop layout">
+    <div class="frame frame--desktop">
+      <p class="eyebrow" id="d-eyebrow">Step 2 of 7</p>
+      <h1 class="pagetitle" id="d-title" tabindex="-1">Step title</h1>
+      <p class="pagedesc" id="d-desc">Keep the step description brief and straightforward.</p>
+      <ol class="stepper stepper--horizontal" id="hSteps" aria-label="Enrolment progress"></ol>
+      <div class="card">
+        <h3 id="d-cardtitle">Card title</h3>
+        <p id="d-cardsub">Short card description</p>
+        <p id="d-cardbody"></p>
+      </div>
+      <div class="actions">
+        <button class="btn btn--ghost" data-nav="back">Back</button>
+        <button class="btn btn--primary" data-nav="next">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MOBILE ================= -->
+  <section class="view" id="view-mobile" aria-label="Mobile layout">
+    <div class="frame frame--mobile">
+      <p class="eyebrow" id="m-eyebrow">Step 2 of 7</p>
+      <h1 class="pagetitle" id="m-title" tabindex="-1">Step title</h1>
+      <p class="pagedesc" id="m-desc"></p>
+
+      <div class="mstepper">
+        <button type="button" class="mstepper__bar" id="mToggle"
+                aria-expanded="false" aria-controls="mPanel">
+          <span class="mstepper__content">
+            <span class="step__icon"><span class="ind" id="m-ind" aria-hidden="true"></span></span>
+            <span class="mstepper__sum">
+              <span class="mstepper__count" id="m-count">Step 2 of 7</span>
+              <span class="mstepper__title" id="m-steptitle">Step title</span>
+              <span class="mstepper__label" id="m-steplabel">Optional label</span>
+            </span>
+          </span>
+          <span class="vh" id="m-togglehint">Show all steps</span>
+          <svg class="mstepper__chev" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="mstepper__panel" id="mPanel" hidden>
+          <ol class="stepper stepper--vertical" id="vSteps" aria-label="Enrolment progress"></ol>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 id="m-cardtitle">Card title</h3>
+        <p id="m-cardsub">Short card description</p>
+        <p id="m-cardbody"></p>
+      </div>
+      <div class="actions">
+        <button class="btn btn--ghost" data-nav="back">Back</button>
+        <button class="btn btn--primary" data-nav="next">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= COMPACT — documented use cases ================= -->
+  <section class="view" id="view-compact" aria-label="Compact layout">
+    <div class="frame frame--desktop">
+      <h1 class="pagetitle" id="c-pageheading" tabindex="-1">Course setup</h1>
+      <p class="pagedesc">
+        Compact answers "where am I", not "what is each step". The guidelines list its use cases as
+        <b>a modal, a card, or a narrow side panel</b> — places where space is tight and the step
+        names aren't the question being asked. It is horizontal only, always shows its count, and is
+        a deliberate choice by the designer — it never kicks in automatically when space runs out.
+      </p>
+
+      <div class="usecase">
+        <div>
+          <h3>In a modal</h3>
+          <button class="btn btn--primary" id="openModal">Set up course</button>
+        </div>
+
+        <div>
+          <h3>In a narrow side panel</h3>
+          <div class="panel">
+            <div class="compact">
+              <div class="compact__content">
+                <p class="compact__count" id="c-count">Step 2 of 7</p>
+                <div class="compact__line">
+                  <p class="compact__title" id="c-steptitle">Step title</p>
+                  <p class="compact__label" id="c-steplabel">Optional label</p>
+                </div>
+              </div>
+              <div class="stepper--compact" id="cSteps" aria-hidden="true"></div>
+            </div>
+            <div class="actions">
+              <button class="btn btn--ghost" data-nav="back">Back</button>
+              <button class="btn btn--primary" data-nav="next">Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- compact inside a modal -->
+  <div class="backdrop" id="backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mdTitle" id="modal">
+      <h2 id="mdTitle" tabindex="-1">Set up course</h2>
+      <p class="pagedesc" id="md-desc">Finish these steps to publish.</p>
+
+      <div class="compact">
+        <div class="compact__content">
+          <p class="compact__count" id="md-count">Step 2 of 7</p>
+          <div class="compact__line">
+            <p class="compact__title" id="md-steptitle">Step title</p>
+            <p class="compact__label" id="md-steplabel">Optional label</p>
+          </div>
+        </div>
+        <div class="stepper--compact" id="mdSteps" aria-hidden="true"></div>
+      </div>
+
+      <div class="card">
+        <h3 id="md-cardtitle">Card title</h3>
+        <p id="md-cardbody"></p>
+      </div>
+      <div class="actions">
+        <button class="btn btn--ghost" id="closeModal">Cancel</button>
+        <button class="btn btn--ghost" data-nav="back">Back</button>
+        <button class="btn btn--primary" data-nav="next">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------- icons (from Figma, stroke switched to currentColor) ---------------- */
+const ICON = {
+  completed:'<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7.5 10L9.16667 11.6667L12.5 8.33333M18.3333 10C18.3333 14.6024 14.6024 18.3333 10 18.3333C5.39763 18.3333 1.66667 14.6024 1.66667 10C1.66667 5.39763 5.39763 1.66667 10 1.66667C14.6024 1.66667 18.3333 5.39763 18.3333 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  current:'<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="6"/></svg>',
+  notStarted:'<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M8.41665 1.81826C9.4625 1.61586 10.5375 1.61586 11.5833 1.81826M11.5833 18.1818C10.5375 18.3842 9.4625 18.3842 8.41665 18.1818M14.6742 3.10079C15.5587 3.70014 16.3198 4.46401 16.9158 5.35079M1.81831 11.5834C1.61591 10.5376 1.61591 9.4626 1.81831 8.41675M16.8991 14.6741C16.2998 15.5586 15.5359 16.3197 14.6491 16.9157M18.1817 8.41675C18.3841 9.4626 18.3841 10.5376 18.1817 11.5834M3.10084 5.32577C3.70019 4.44121 4.46406 3.68017 5.35084 3.08411M5.32582 16.8993C4.44127 16.2999 3.68022 15.536 3.08416 14.6493" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  error:'<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 6.66667V10M10 13.3333H10.0083M18.3333 10C18.3333 14.6024 14.6024 18.3333 10 18.3333C5.39763 18.3333 1.66667 14.6024 1.66667 10C1.66667 5.39763 5.39763 1.66667 10 1.66667C14.6024 1.66667 18.3333 5.39763 18.3333 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+const SR = {completed:'Completed.', current:'Current step.', notStarted:'Not started.', error:'Has an error.'};
+
+/* ---------------- fake flow ---------------- */
+const STEPS = [
+  {title:'Create account',   label:'Optional label', desc:'Set up the login the student will use from now on.'},
+  {title:'Verify email',     label:'Optional label', desc:'We sent a code to the address you gave us.'},
+  {title:'Parent consent',   label:'Optional label', desc:'A guardian has to sign off before we can continue.'},
+  {title:'Student details',  label:'Optional label', desc:'Name, date of birth and current school.'},
+  {title:'Upload documents', label:'Optional label', desc:'Transcript and proof of address.'},
+  {title:'Review',           label:'Optional label', desc:'Check everything before it goes off.'},
+  {title:'Submit',           label:'Optional label', desc:'Last step — send the application.'}
+];
+const BODY = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.';
+
+/* ---------------------------------------------------------------
+   State model: `state` and `error` are TWO FIELDS, not one enum.
+   A step in error is still the step the user is standing on, so it
+   keeps aria-current. (Stepper prototype, "Two steps at once, ever".)
+   --------------------------------------------------------------- */
+let idx = 1;                 // zero-based current step
+let view = 'desktop';
+let showCount = false;
+let errorAt = null;          // null | 'current' | index of a past step
+
+const $  = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const total = STEPS.length;
+
+function errorIndex(){
+  if(errorAt === null) return -1;
+  return errorAt === 'current' ? idx : errorAt;
+}
+function stateOf(i){
+  if(i < idx) return 'completed';
+  if(i === idx) return 'current';
+  return 'notStarted';
+}
+function hasError(i){ return i === errorIndex(); }
+
+/* the visually hidden sentence: state first, then the error on top of it */
+function srFor(i){
+  const parts = [SR[stateOf(i)]];
+  if(hasError(i)) parts.push(SR.error);
+  return parts.join(' ');
+}
+/* which icon wins visually — error replaces the glyph, not the state */
+function iconFor(i){ return hasError(i) ? ICON.error : ICON[stateOf(i)]; }
+
+/* ---- a vertical / horizontal step ---- */
+function buildStep(i){
+  const st = stateOf(i), err = hasError(i), s = STEPS[i];
+  const li = document.createElement('li');
+  li.className = 'step step--' + st + (err ? ' step--error' : '');
+  if(st === 'current') li.setAttribute('aria-current','step');   // kept even in error
+
+  const rail = document.createElement('span');
+  rail.className = 'rail';
+  rail.setAttribute('aria-hidden','true');
+  rail.innerHTML = '<i></i>';
+
+  const body = document.createElement('div');
+  body.className = 'step__body';
+  body.innerHTML =
+    '<span class="step__icon"><span class="ind">' + iconFor(i) + '</span></span>' +
+    '<div class="step__text">' +
+      '<span class="' + (showCount ? 'step__count' : 'step__count vh') + '">Step ' + (i+1) + ' of ' + total + '.</span>' +
+      '<span class="vh">' + srFor(i) + '</span>' +
+      '<p class="step__title">' + s.title + '</p>' +
+      '<p class="step__label">' + (err ? 'Card declined — needs attention' : s.label) + '</p>' +
+    '</div>';
+
+  li.append(rail, body);
+  return li;
+}
+
+/* ---- compact segments ----
+   Docs: compact has no <ol> and no aria-current, because only one step is
+   named. Segments are aria-hidden; they'd only repeat the count. ---- */
+function buildSegments(host){
+  host.textContent = '';
+  for(let i = 0; i < total; i++){
+    const st = stateOf(i);
+    const seg = document.createElement('span');
+    // .compactStep has three states: completed/current, notStarted, error
+    seg.className = 'step step--' + (hasError(i) ? 'error' : (st === 'notStarted' ? 'notStarted' : 'completed'));
+    seg.innerHTML = '<i></i>';
+    host.appendChild(seg);
+  }
+}
+
+function renderSteppers(){
+  const h = $('#hSteps'), v = $('#vSteps');
+  h.textContent = ''; v.textContent = '';
+  for(let i = 0; i < total; i++){
+    h.appendChild(buildStep(i));
+    v.appendChild(buildStep(i));
+  }
+  buildSegments($('#cSteps'));
+  buildSegments($('#mdSteps'));
+}
+
+function render(announce){
+  const s = STEPS[idx];
+  const countTxt = 'Step ' + (idx+1) + ' of ' + total;
+  const errIdx = errorIndex();
+
+  // compact / modal / mobile summaries always show the count — showStepCount is ignored here
+  ['d','m','c','md'].forEach(p => {
+    const set = (id, txt) => { const el = document.getElementById(p + '-' + id); if(el) el.textContent = txt; };
+    set('eyebrow', countTxt);
+    set('title', s.title);
+    set('desc', s.desc);
+    set('cardtitle', 'Card title');
+    set('cardsub', 'Short card description');
+    set('cardbody', BODY);
+    set('count', countTxt);
+    set('steptitle', s.title);
+    set('steplabel', hasError(idx) ? 'Card declined — needs attention' : s.label);
+  });
+
+  $('#m-ind').innerHTML = iconFor(idx);
+  renderSteppers();
+
+  $$('[data-nav="back"]').forEach(b => b.disabled = idx === 0);
+  $$('[data-nav="next"]').forEach(b => {
+    b.disabled = idx === total - 1 || hasError(idx);
+    b.title = hasError(idx) ? 'Resolve the error on this step before continuing' : '';
+  });
+
+  /* Prototype rule: a step in error is never collapsed. If the error sits on a
+     step other than the one shown in the mobile summary bar, open the panel. */
+  if(errIdx > -1 && errIdx !== idx && mToggle.getAttribute('aria-expanded') === 'false'){
+    setExpanded(true);
+  }
+
+  if(announce){
+    $('#live').textContent = countTxt + ': ' + s.title + '. ' + srFor(idx);
+    const h1 = $('#view-' + view + ' .pagetitle');
+    if(h1) h1.focus();
+  }
+}
+
+/* ---------------- wiring ---------------- */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-nav]');
+  if(!btn || btn.disabled) return;
+  idx = Math.min(total - 1, Math.max(0, idx + (btn.dataset.nav === 'next' ? 1 : -1)));
+  render(true);
+});
+
+$$('.seg button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    view = btn.dataset.view;
+    $$('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    $$('.view').forEach(sec => sec.classList.toggle('is-active', sec.id === 'view-' + view));
+  });
+});
+
+$('#modeSel').addEventListener('change', e =>
+  document.documentElement.dataset.mode = e.target.value);
+$('#countChk').addEventListener('change', e => { showCount = e.target.checked; renderSteppers(); });
+$('#errSel').addEventListener('change', e => {
+  const v = e.target.value;
+  errorAt = v === 'none' ? null : (v === 'current' ? 'current' : Number(v));
+  render(false);
+});
+$('#greyChk').addEventListener('change', e =>
+  document.documentElement.classList.toggle('greyscale', e.target.checked));
+
+/* ---- mobile disclosure ---- */
+const mToggle = $('#mToggle'), mPanel = $('#mPanel'), mHint = $('#m-togglehint');
+function setExpanded(open){
+  mToggle.setAttribute('aria-expanded', String(open));
+  mPanel.hidden = !open;
+  mHint.textContent = open ? 'Hide all steps' : 'Show all steps';
+}
+mToggle.addEventListener('click', () =>
+  setExpanded(mToggle.getAttribute('aria-expanded') !== 'true'));
+
+/* ---- modal (the documented compact use case) ---- */
+const backdrop = $('#backdrop'), modal = $('#modal');
+let lastFocus = null;
+function openModal(){
+  lastFocus = document.activeElement;
+  backdrop.classList.add('is-open');
+  $('#mdTitle').focus();
+}
+function closeModal(){
+  backdrop.classList.remove('is-open');
+  if(lastFocus) lastFocus.focus();
+}
+$('#openModal').addEventListener('click', openModal);
+$('#closeModal').addEventListener('click', closeModal);
+backdrop.addEventListener('click', e => { if(e.target === backdrop) closeModal(); });
+document.addEventListener('keydown', e => {
+  if(!backdrop.classList.contains('is-open')) return;
+  if(e.key === 'Escape'){ closeModal(); return; }
+  if(e.key !== 'Tab') return;
+  const f = [...modal.querySelectorAll('button:not([disabled])')];
+  if(!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+});
+
+render(false);
+</script>
+</body>
+</html>
