@@ -358,8 +358,8 @@ html[data-mode="dark"]{color-scheme:dark}
       <p class="eyebrow" id="d-eyebrow">Step 2 of 7</p>
       <h1 class="pagetitle" id="d-title" tabindex="-1">Step title</h1>
       <p class="pagedesc" id="d-desc">Keep the step description brief and straightforward.</p>
-      <ol class="stepper stepper--horizontal" id="hSteps" aria-label="Enrolment progress"></ol>
       <div class="alertslot" data-alert="d"></div>
+      <ol class="stepper stepper--horizontal" id="hSteps" aria-label="Enrolment progress"></ol>
       <div class="card">
         <h3 id="d-cardtitle">Card title</h3>
         <p id="d-cardsub">Short card description</p>
@@ -386,6 +386,7 @@ html[data-mode="dark"]{color-scheme:dark}
     <div class="frame frame--mobile" id="mCurrent">
       <h1 class="pagetitle" id="m-title" tabindex="-1">Course setup</h1>
 
+      <div class="alertslot" data-alert="m"></div>
       <div class="mstepper">
         <button type="button" class="mstepper__bar" id="mToggle"
                 aria-expanded="false" aria-controls="mPanel">
@@ -409,7 +410,6 @@ html[data-mode="dark"]{color-scheme:dark}
         </div>
       </div>
 
-      <div class="alertslot" data-alert="m"></div>
       </div>
 
       <p class="pagedesc" id="m-desc"></p>
@@ -432,6 +432,7 @@ html[data-mode="dark"]{color-scheme:dark}
       <h1 class="pagetitle" id="n-title" tabindex="-1">Step title</h1>
       <p class="pagedesc" id="n-desc"></p>
 
+      <div class="alertslot" data-alert="n"></div>
       <div class="mstepper mstepper--flow">
         <div class="mstepper__head">
         <button type="button" class="mstepper__bar" id="nToggle"
@@ -461,7 +462,6 @@ html[data-mode="dark"]{color-scheme:dark}
         </div>
       </div>
 
-      <div class="alertslot" data-alert="n"></div>
       </div>
 
       <div class="card">
@@ -477,6 +477,7 @@ html[data-mode="dark"]{color-scheme:dark}
 
     <!-- MOVED: bar sits above the heading and is named after the flow -->
     <div class="frame frame--mobile" id="mProposed" hidden>
+      <div class="alertslot" data-alert="p"></div>
       <div class="mstepper mstepper--flow">
         <div class="mstepper__head">
         <button type="button" class="mstepper__bar" id="pToggle"
@@ -506,7 +507,6 @@ html[data-mode="dark"]{color-scheme:dark}
         </div>
       </div>
 
-      <div class="alertslot" data-alert="p"></div>
       </div>
 
       <h1 class="pagetitle" id="p-title" tabindex="-1">Step title</h1>
@@ -544,6 +544,7 @@ html[data-mode="dark"]{color-scheme:dark}
         <div>
           <h3>In a narrow side panel</h3>
           <div class="panel">
+            <div class="alertslot" data-alert="c"></div>
             <div class="compact">
               <div class="compact__content">
                 <p class="compact__count" id="c-count">Step 2 of 7</p>
@@ -555,7 +556,6 @@ html[data-mode="dark"]{color-scheme:dark}
               </div>
               <div class="stepper--compact" id="cSteps" aria-hidden="true"></div>
             </div>
-            <div class="alertslot" data-alert="c"></div>
             <div class="actions">
               <button class="btn btn--ghost" data-nav="back">Back</button>
               <button class="btn btn--primary" data-nav="next">Next</button>
@@ -572,6 +572,7 @@ html[data-mode="dark"]{color-scheme:dark}
       <h2 id="mdTitle" tabindex="-1">Set up course</h2>
       <p class="pagedesc" id="md-desc">Finish these steps to publish.</p>
 
+      <div class="alertslot" data-alert="md"></div>
       <div class="compact">
         <div class="compact__content">
           <p class="compact__count" id="md-count">Step 2 of 7</p>
@@ -583,8 +584,6 @@ html[data-mode="dark"]{color-scheme:dark}
         </div>
         <div class="stepper--compact" id="mdSteps" aria-hidden="true"></div>
       </div>
-
-      <div class="alertslot" data-alert="md"></div>
 
       <div class="card">
         <h3 id="md-cardtitle">Card title</h3>
@@ -716,7 +715,7 @@ function buildStep(i){
         ? '<span class="vh">' + vh + '</span>' + countEl
         : countEl + '<span class="vh">' + vh + '</span>') +
       '<p class="step__title">' + s.title + '</p>' +
-      '<p class="step__label">' + (err ? 'Card declined — needs attention' : s.label) + '</p>' +
+      '<p class="step__label">' + s.label + '</p>' +
     '</div>';
 
   li.append(rail, body);
@@ -751,6 +750,22 @@ function renderSteppers(){
   buildSegments($('#mdSteps'));
 }
 
+const ERR_PANEL = {m:'#mPanel', n:'#nPanel', p:'#pPanel'};
+function syncSummaryErr(){
+  const errIdx = errorIndex();
+  ['m','n','p','c','md'].forEach(k => {
+    const el = document.getElementById(k + '-steperr');
+    if(!el) return;
+    const panel = ERR_PANEL[k] ? $(ERR_PANEL[k]) : null;
+    const listHidden = !panel || panel.hidden;
+    el.hidden = errIdx < 0 || !listHidden;
+    if(el.hidden) return;
+    el.textContent = errIdx === idx
+      ? 'This step has an error'
+      : 'Step ' + (errIdx + 1) + ' has an error';
+  });
+}
+
 function render(announce){
   const s = stepAt(idx);
   const countTxt = 'Step ' + (idx+1) + ' of ' + total;
@@ -775,19 +790,12 @@ function render(announce){
   $('#m-ind').innerHTML = iconFor(idx);
   $('#mToggle').classList.toggle('is-error', hasError(idx));
 
-  /* 1.4.1 Use of Colour. Compact segments are aria-hidden and every collapsed
+  /* 1.4.1 Use of Colour. Compact segments are aria-hidden, and a collapsed
      summary names only the current step, so an errored step would otherwise be
-     red and nothing else. The summary itself has to say so, in text, whether or
-     not the surrounding app renders an alert. */
-  ['m','n','p','c','md'].forEach(p => {
-    const el = document.getElementById(p + '-steperr');
-    if(!el) return;
-    el.hidden = errIdx < 0;
-    if(errIdx < 0) return;
-    el.textContent = errIdx === idx
-      ? 'This step has an error'
-      : 'Step ' + (errIdx + 1) + ' has an error';
-  });
+     red and nothing else. The summary says it in text — but only while the list
+     is hidden. Once it is open the list itself carries the state, and repeating
+     it here would say the same thing twice. */
+  syncSummaryErr();
 
   /* The error alert lives outside the stepper in every layout, so the message
      and the recovery action never depend on the step column's width, on the
@@ -877,6 +885,7 @@ function setExpanded(open){
   mToggle.setAttribute('aria-expanded', String(open));
   mPanel.hidden = !open;
   mHint.textContent = open ? 'Hide all steps' : 'Show all steps';
+  syncSummaryErr();
 }
 mToggle.addEventListener('click', () =>
   setExpanded(mToggle.getAttribute('aria-expanded') !== 'true'));
@@ -889,6 +898,7 @@ const pToggle = $('#pToggle'), pPanel = $('#pPanel');
 function setPExpanded(open){
   pToggle.setAttribute('aria-expanded', String(open));
   pPanel.hidden = !open;
+  syncSummaryErr();
 }
 pToggle.addEventListener('click', () =>
   setPExpanded(pToggle.getAttribute('aria-expanded') !== 'true'));
@@ -901,6 +911,7 @@ const nToggle = $('#nToggle'), nPanel = $('#nPanel');
 function setNExpanded(open){
   nToggle.setAttribute('aria-expanded', String(open));
   nPanel.hidden = !open;
+  syncSummaryErr();
 }
 nToggle.addEventListener('click', () =>
   setNExpanded(nToggle.getAttribute('aria-expanded') !== 'true'));
