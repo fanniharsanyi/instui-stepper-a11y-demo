@@ -357,10 +357,11 @@ html[data-mode="dark"]{color-scheme:dark}
       <button type="button" data-mlayout="proposed" aria-pressed="false">Moved</button>
     </div>
 
+    <!-- CURRENT: original bar, but the page heading names the FLOW, not the
+         step, and the step count eyebrow is gone — so the bar is the only
+         place the step is identified and nothing is said twice. -->
     <div class="frame frame--mobile" id="mCurrent">
-      <p class="eyebrow" id="m-eyebrow">Step 2 of 7</p>
-      <h1 class="pagetitle" id="m-title" tabindex="-1">Step title</h1>
-      <p class="pagedesc" id="m-desc"></p>
+      <h1 class="pagetitle" id="m-title" tabindex="-1">Course setup</h1>
 
       <div class="mstepper">
         <button type="button" class="mstepper__bar" id="mToggle"
@@ -383,6 +384,8 @@ html[data-mode="dark"]{color-scheme:dark}
           <ol class="stepper stepper--vertical" id="vSteps" aria-label="Enrolment progress"></ol>
         </div>
       </div>
+
+      <p class="pagedesc" id="m-desc"></p>
 
       <div class="card">
         <h3 id="m-cardtitle">Card title</h3>
@@ -713,10 +716,11 @@ function render(announce){
   const errIdx = errorIndex();
 
   // compact / modal / mobile summaries always show the count — showStepCount is ignored here
+  // 'm' heads its page with the flow name, not the step, so it skips 'title'
   ['d','m','c','md','p','n'].forEach(p => {
     const set = (id, txt) => { const el = document.getElementById(p + '-' + id); if(el) el.textContent = txt; };
     set('eyebrow', countTxt);
-    set('title', s.title);
+    if(p !== 'm') set('title', s.title);
     set('desc', s.desc);
     set('cardtitle', 'Card title');
     set('cardsub', 'Short card description');
