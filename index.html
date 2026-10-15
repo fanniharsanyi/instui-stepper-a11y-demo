@@ -128,7 +128,8 @@ html[data-mode="dark"]{color-scheme:dark}
 .step__label{font-size:14px; color:var(--text-muted); width:100%;
   margin:0; line-height:1.5;
   display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:4; overflow:hidden}
-.step--error .step__label{color:var(--text-error)}
+/* The optional label is never red. Colour marks which step via the indicator;
+   the label carries text, so colouring it would say the same thing twice. */
 /* icon column has 2px top padding in the component */
 .step__icon{display:flex; align-items:center; padding-top:var(--space-2xs); flex:0 0 auto}
 
