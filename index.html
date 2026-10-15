@@ -115,11 +115,17 @@ html[data-mode="dark"]{color-scheme:dark}
 .step--current .step__text{gap:4px}
 .step__count{font-size:12px; color:var(--text-base); width:100%;
   overflow:hidden; text-overflow:ellipsis; margin:0}
+/* Figma: the title wraps then truncates at 3 lines, the optional label at 4.
+   textTruncation=ENDING, maxLines=3 / maxLines=4 on .verticalStep and
+   .horizontalStep. The ellipsis is visual only — the full string stays in
+   the DOM, so screen readers always get it. */
 .step__title{font-size:16px; color:var(--text-base); width:100%;
-  overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.5; font-weight:400}
+  margin:0; line-height:1.5; font-weight:400;
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden}
 .step--current .step__title{font-family:var(--font-heading); font-weight:700; line-height:1.25}
 .step__label{font-size:14px; color:var(--text-muted); width:100%;
-  overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.5}
+  margin:0; line-height:1.5;
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:4; overflow:hidden}
 .step--error .step__label{color:var(--text-error)}
 /* icon column has 2px top padding in the component */
 .step__icon{display:flex; align-items:center; padding-top:var(--space-2xs); flex:0 0 auto}
@@ -158,10 +164,8 @@ html[data-mode="dark"]{color-scheme:dark}
   display:flex; gap:var(--space-sm); align-items:flex-start;
   padding:0 var(--space-lg) 0 var(--space-none); width:100%;
 }
-/* titles truncate to one line in horizontal — this is the truncation case under discussion */
-.stepper--horizontal .step__count,
-.stepper--horizontal .step__title,
-.stepper--horizontal .step__label{white-space:nowrap}
+/* the count never wraps — it is one short string */
+.stepper--horizontal .step__count{white-space:nowrap}
 
 /* ---------- COMPACT: summary line + equal segment bar ---------- */
 .compact{display:flex; flex-direction:column; gap:var(--space-sm); width:100%}
@@ -276,6 +280,7 @@ html[data-mode="dark"]{color-scheme:dark}
       <option value="0">step 1 (passed)</option>
     </select></span>
   </label>
+  <label><input type="checkbox" id="longChk"> Long titles (truncation)</label>
   <label><input type="checkbox" id="greyChk"> Greyscale</label>
 </div>
 
@@ -436,6 +441,33 @@ const STEPS = [
 ];
 const BODY = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.';
 
+/* ---------------- the truncation case ----------------
+   Same flow, written the way product teams actually write it. Several
+   titles open with the same words, so once they clamp at 3 lines the
+   steps stop being distinguishable from one another — which is the
+   argument for front-loading the distinctive word rather than relying
+   on the ellipsis. The full string stays in the DOM either way, so a
+   screen reader user never loses it; only sighted users do, and with
+   no focusable step there is nothing to hover, tab to or tap for the
+   rest of it. */
+const LONG = [
+  {title:'Create the account the student will use to sign in from now on',
+   label:'Required before any other step can be started'},
+  {title:'Verify the email address you gave us on the previous step',
+   label:'We sent a six digit code, it expires after fifteen minutes'},
+  {title:'Upload the parent or guardian consent form for this application',
+   label:'Must be signed by a guardian listed on the student record'},
+  {title:'Upload the student details form including date of birth and school',
+   label:'Name, date of birth and the school currently attended'},
+  {title:'Upload the supporting documentation requested by the institution',
+   label:'Full academic transcript and a recent proof of address'},
+  {title:'Review everything you have entered before it is submitted',
+   label:'Nothing is charged or sent until you confirm on this step'},
+  {title:'Submit the completed application to the issuing institution',
+   label:'Most institutions respond within two working days'}
+];
+function stepAt(i){ return showLong ? Object.assign({}, STEPS[i], LONG[i]) : STEPS[i]; }
+
 /* ---------------------------------------------------------------
    State model: `state` and `error` are TWO FIELDS, not one enum.
    A step in error is still the step the user is standing on, so it
@@ -444,6 +476,7 @@ const BODY = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do ei
 let idx = 1;                 // zero-based current step
 let view = 'desktop';
 let showCount = false;
+let showLong = false;        // long titles, to show the 3-line clamp
 let errorAt = null;          // null | 'current' | index of a past step
 
 const $  = s => document.querySelector(s);
@@ -472,7 +505,7 @@ function iconFor(i){ return hasError(i) ? ICON.error : ICON[stateOf(i)]; }
 
 /* ---- a vertical / horizontal step ---- */
 function buildStep(i){
-  const st = stateOf(i), err = hasError(i), s = STEPS[i];
+  const st = stateOf(i), err = hasError(i), s = stepAt(i);
   const li = document.createElement('li');
   li.className = 'step step--' + st + (err ? ' step--error' : '');
   if(st === 'current') li.setAttribute('aria-current','step');   // kept even in error
@@ -482,13 +515,25 @@ function buildStep(i){
   rail.setAttribute('aria-hidden','true');
   rail.innerHTML = '<i></i>';
 
+  /* Docs: the count is never rendered twice. When it is visible it is the only
+     source; when it is hidden only the current step keeps one, authored into
+     the visually hidden sentence. That is also why the announced order differs
+     between steps — a visible count is real text above the title, so it reads
+     before the state prefix, while the current step's hidden count is written
+     after it. "Step 1 of 7. Completed: ..." vs "Current step: Step 2 of 7. ..." */
+  const countTxt = 'Step ' + (i+1) + ' of ' + total + '.';
+  let vh = srFor(i), countEl = '';
+  if(showCount)            countEl = '<span class="step__count">' + countTxt + '</span>';
+  else if(st === 'current') vh += ' ' + countTxt;
+
   const body = document.createElement('div');
   body.className = 'step__body';
   body.innerHTML =
     '<span class="step__icon"><span class="ind">' + iconFor(i) + '</span></span>' +
     '<div class="step__text">' +
-      '<span class="' + (showCount ? 'step__count' : 'step__count vh') + '">Step ' + (i+1) + ' of ' + total + '.</span>' +
-      '<span class="vh">' + srFor(i) + '</span>' +
+      (st === 'current'
+        ? '<span class="vh">' + vh + '</span>' + countEl
+        : countEl + '<span class="vh">' + vh + '</span>') +
       '<p class="step__title">' + s.title + '</p>' +
       '<p class="step__label">' + (err ? 'Card declined — needs attention' : s.label) + '</p>' +
     '</div>';
@@ -524,7 +569,7 @@ function renderSteppers(){
 }
 
 function render(announce){
-  const s = STEPS[idx];
+  const s = stepAt(idx);
   const countTxt = 'Step ' + (idx+1) + ' of ' + total;
   const errIdx = errorIndex();
 
@@ -583,6 +628,7 @@ $$('.seg button').forEach(btn => {
 $('#modeSel').addEventListener('change', e =>
   document.documentElement.dataset.mode = e.target.value);
 $('#countChk').addEventListener('change', e => { showCount = e.target.checked; renderSteppers(); });
+$('#longChk').addEventListener('change', e => { showLong = e.target.checked; render(false); });
 $('#errSel').addEventListener('change', e => {
   const v = e.target.value;
   errorAt = v === 'none' ? null : (v === 'current' ? 'current' : Number(v));
