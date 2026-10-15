@@ -80,11 +80,13 @@ html[data-mode="dark"]{color-scheme:dark}
 .chrome .seg button:focus-visible,
 .chrome input:focus-visible{outline:2px solid var(--stroke-info); outline-offset:2px}
 .chrome .seg{display:flex; border:1px solid var(--stroke-base); border-radius:6px; overflow:hidden}
-.chrome .seg button{
+.chrome .seg button,
+.layoutswitch button{
   font:inherit; font-family:var(--font-base); padding:6px 14px; border:0; cursor:pointer;
   background:var(--bg-muted); color:var(--text-base);
 }
-.chrome .seg button[aria-pressed="true"]{background:var(--stroke-info); color:#fff}
+.chrome .seg button[aria-pressed="true"],
+.layoutswitch button[aria-pressed="true"]{background:var(--stroke-info); color:#fff}
 .chrome code{font-family:ui-monospace,monospace; font-size:12px}
 .wrap{max-width:1180px; margin:0 auto; padding:28px 20px 80px}
 .note{font-size:14px; color:var(--text-muted); line-height:1.5; max-width:70ch; margin:0 0 22px}
@@ -209,6 +211,23 @@ html[data-mode="dark"]{color-scheme:dark}
 .mstepper__bar[aria-expanded="true"] .mstepper__chev{transform:rotate(180deg)}
 .mstepper__panel .stepper--vertical{width:100%}
 
+/* ---- PROPOSED mobile layout (a11y review, 15 Oct) ----
+   The bar is named after the flow, not the step, so the accessible name
+   describes what the toggle actually controls. The step title stays as the
+   page heading, so nothing is announced twice. The progress bar is
+   aria-hidden — the count beside it is the text equivalent. */
+.mstepper--flow{margin:0 0 16px}
+.mstepper--flow .mstepper__sum{gap:2px}
+.mstepper__flowname{font-family:var(--font-heading); font-weight:700; font-size:16px;
+  line-height:1.25; color:var(--text-base)}
+.mstepper--flow .mstepper__count{font-family:var(--font-base); font-weight:400;
+  font-size:14px; color:var(--text-muted)}
+.mprogress{display:block; width:100%; height:4px; border-radius:2px;
+  background:var(--stroke-base); margin-top:8px; overflow:hidden}
+.mprogress i{display:block; height:100%; border-radius:2px; background:var(--stroke-info)}
+.layoutswitch{display:flex; gap:8px; align-items:center; justify-content:center;
+  margin:0 0 14px; font-size:14px}
+
 /* =======================================================================
    Fake product chrome so the flow reads like a real page
    ======================================================================= */
@@ -310,7 +329,12 @@ html[data-mode="dark"]{color-scheme:dark}
 
   <!-- ================= MOBILE ================= -->
   <section class="view" id="view-mobile" aria-label="Mobile layout">
-    <div class="frame frame--mobile">
+    <div class="layoutswitch" role="group" aria-label="Which mobile layout to preview">
+      <button type="button" data-mlayout="current" aria-pressed="true">Current</button>
+      <button type="button" data-mlayout="proposed" aria-pressed="false">Proposed</button>
+    </div>
+
+    <div class="frame frame--mobile" id="mCurrent">
       <p class="eyebrow" id="m-eyebrow">Step 2 of 7</p>
       <h1 class="pagetitle" id="m-title" tabindex="-1">Step title</h1>
       <p class="pagedesc" id="m-desc"></p>
@@ -341,6 +365,42 @@ html[data-mode="dark"]{color-scheme:dark}
         <h3 id="m-cardtitle">Card title</h3>
         <p id="m-cardsub">Short card description</p>
         <p id="m-cardbody"></p>
+      </div>
+      <div class="actions">
+        <button class="btn btn--ghost" data-nav="back">Back</button>
+        <button class="btn btn--primary" data-nav="next">Next</button>
+      </div>
+    </div>
+
+    <!-- PROPOSED: bar sits above the heading and is named after the flow -->
+    <div class="frame frame--mobile" id="mProposed" hidden>
+      <div class="mstepper mstepper--flow">
+        <button type="button" class="mstepper__bar" id="pToggle"
+                aria-expanded="false" aria-controls="pPanel">
+          <span class="mstepper__content">
+            <span class="mstepper__sum">
+              <span class="mstepper__flowname">Course setup</span>
+              <span class="mstepper__count" id="p-count">Step 2 of 7</span>
+              <span class="mprogress" aria-hidden="true"><i id="p-bar"></i></span>
+            </span>
+          </span>
+          <svg class="mstepper__chev" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="mstepper__panel" id="pPanel" hidden>
+          <ol class="stepper stepper--vertical" id="pSteps" aria-label="Course setup"></ol>
+        </div>
+      </div>
+
+      <h1 class="pagetitle" id="p-title" tabindex="-1">Step title</h1>
+      <p class="pagedesc" id="p-desc"></p>
+
+      <div class="card">
+        <h3 id="p-cardtitle">Card title</h3>
+        <p id="p-cardsub">Short card description</p>
+        <p id="p-cardbody"></p>
       </div>
       <div class="actions">
         <button class="btn btn--ghost" data-nav="back">Back</button>
@@ -558,11 +618,12 @@ function buildSegments(host){
 }
 
 function renderSteppers(){
-  const h = $('#hSteps'), v = $('#vSteps');
-  h.textContent = ''; v.textContent = '';
+  const h = $('#hSteps'), v = $('#vSteps'), p = $('#pSteps');
+  h.textContent = ''; v.textContent = ''; p.textContent = '';
   for(let i = 0; i < total; i++){
     h.appendChild(buildStep(i));
     v.appendChild(buildStep(i));
+    p.appendChild(buildStep(i));
   }
   buildSegments($('#cSteps'));
   buildSegments($('#mdSteps'));
@@ -574,7 +635,7 @@ function render(announce){
   const errIdx = errorIndex();
 
   // compact / modal / mobile summaries always show the count — showStepCount is ignored here
-  ['d','m','c','md'].forEach(p => {
+  ['d','m','c','md','p'].forEach(p => {
     const set = (id, txt) => { const el = document.getElementById(p + '-' + id); if(el) el.textContent = txt; };
     set('eyebrow', countTxt);
     set('title', s.title);
@@ -588,6 +649,7 @@ function render(announce){
   });
 
   $('#m-ind').innerHTML = iconFor(idx);
+  $('#p-bar').style.width = Math.round(((idx + 1) / total) * 100) + '%';
   renderSteppers();
 
   $$('[data-nav="back"]').forEach(b => b.disabled = idx === 0);
@@ -598,13 +660,17 @@ function render(announce){
 
   /* Prototype rule: a step in error is never collapsed. If the error sits on a
      step other than the one shown in the mobile summary bar, open the panel. */
-  if(errIdx > -1 && errIdx !== idx && mToggle.getAttribute('aria-expanded') === 'false'){
-    setExpanded(true);
+  if(errIdx > -1 && errIdx !== idx){
+    if(mToggle.getAttribute('aria-expanded') === 'false') setExpanded(true);
+    if(pToggle.getAttribute('aria-expanded') === 'false') setPExpanded(true);
   }
 
   if(announce){
     $('#live').textContent = countTxt + ': ' + s.title + '. ' + srFor(idx);
-    const h1 = $('#view-' + view + ' .pagetitle');
+    const frame = view === 'mobile'
+      ? $('#view-mobile .frame--mobile:not([hidden])')
+      : $('#view-' + view);
+    const h1 = frame && frame.querySelector('.pagetitle');
     if(h1) h1.focus();
   }
 }
@@ -617,10 +683,10 @@ document.addEventListener('click', e => {
   render(true);
 });
 
-$$('.seg button').forEach(btn => {
+$$('[data-view]').forEach(btn => {
   btn.addEventListener('click', () => {
     view = btn.dataset.view;
-    $$('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    $$('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
     $$('.view').forEach(sec => sec.classList.toggle('is-active', sec.id === 'view-' + view));
   });
 });
@@ -646,6 +712,28 @@ function setExpanded(open){
 }
 mToggle.addEventListener('click', () =>
   setExpanded(mToggle.getAttribute('aria-expanded') !== 'true'));
+
+/* ---- proposed mobile disclosure ----
+   No hidden "Show all steps" suffix here: the bar is named after the flow
+   ("Course setup, Step 2 of 7"), so the accessible name already says what
+   expands. aria-expanded carries the state, and the name never changes. */
+const pToggle = $('#pToggle'), pPanel = $('#pPanel');
+function setPExpanded(open){
+  pToggle.setAttribute('aria-expanded', String(open));
+  pPanel.hidden = !open;
+}
+pToggle.addEventListener('click', () =>
+  setPExpanded(pToggle.getAttribute('aria-expanded') !== 'true'));
+
+/* ---- current vs proposed mobile layout ---- */
+$$('[data-mlayout]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const proposed = btn.dataset.mlayout === 'proposed';
+    $$('[data-mlayout]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    $('#mCurrent').hidden = proposed;
+    $('#mProposed').hidden = !proposed;
+  });
+});
 
 /* ---- modal (the documented compact use case) ---- */
 const backdrop = $('#backdrop'), modal = $('#modal');
