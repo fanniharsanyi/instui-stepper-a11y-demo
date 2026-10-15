@@ -214,17 +214,31 @@ html[data-mode="dark"]{color-scheme:dark}
 /* ---- PROPOSED mobile layout (a11y review, 15 Oct) ----
    The bar is named after the flow, not the step, so the accessible name
    describes what the toggle actually controls. The step title stays as the
-   page heading, so nothing is announced twice. The progress bar is
-   aria-hidden — the count beside it is the text equivalent. */
+   page heading, so nothing is announced twice. */
 .mstepper--flow{margin:0 0 16px}
 .mstepper--flow .mstepper__sum{gap:2px}
 .mstepper__flowname{font-family:var(--font-heading); font-weight:700; font-size:16px;
   line-height:1.25; color:var(--text-base)}
 .mstepper--flow .mstepper__count{font-family:var(--font-base); font-weight:400;
   font-size:14px; color:var(--text-muted)}
-.mprogress{display:block; width:100%; height:4px; border-radius:2px;
-  background:var(--stroke-base); margin-top:8px; overflow:hidden}
-.mprogress i{display:block; height:100%; border-radius:2px; background:var(--stroke-info)}
+
+/* ---- InstUI Progress Bar, size=x-small, color=primary ----
+   Tokens read from the component spec (node 10541:5968):
+   borderRadius 8 · xSmallHeight 8 · trackColor transparent · borderColor
+   #1d354f · meterColorInfo #1d354f · textColor #576773 · valuePadding 8 ·
+   xSmallValueFontSize 16 · Atkinson Hyperlegible Next 400.
+   It sits OUTSIDE the toggle button on purpose — a progressbar nested inside
+   a button gets folded into the button's accessible name. */
+.pbar{display:flex; align-items:center; margin-top:8px}
+.pbar__track{flex:1 0 0; height:8px; border-radius:8px; background:transparent;
+  border:1px solid #1d354f; overflow:hidden}
+.pbar__meter{display:block; height:100%; border-radius:8px; background:#1d354f;
+  transition:width .2s ease}
+.pbar__value{padding-left:8px; font-family:var(--font-base); font-weight:400;
+  font-size:16px; line-height:1; color:#576773; white-space:nowrap}
+[data-mode="dark"] .pbar__track{border-color:#fff}
+[data-mode="dark"] .pbar__meter{background:#fff}
+[data-mode="dark"] .pbar__value{color:#f5f5f5}
 .layoutswitch{display:flex; gap:8px; align-items:center; justify-content:center;
   margin:0 0 14px; font-size:14px}
 
@@ -386,7 +400,6 @@ html[data-mode="dark"]{color-scheme:dark}
           <span class="mstepper__content">
             <span class="mstepper__sum">
               <span class="mstepper__flowname">Course setup</span>
-              <span class="mprogress" aria-hidden="true"><i id="n-bar"></i></span>
             </span>
           </span>
           <span class="vh">step list</span>
@@ -395,6 +408,13 @@ html[data-mode="dark"]{color-scheme:dark}
                   stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+        <div class="pbar" id="n-pbar" role="progressbar"
+             aria-label="Course setup progress"
+             aria-valuemin="0" aria-valuemax="7" aria-valuenow="2"
+             aria-valuetext="Step 2 of 7">
+          <span class="pbar__track"><i class="pbar__meter" id="n-bar"></i></span>
+          <span class="pbar__value" id="n-pct">29%</span>
+        </div>
         <div class="mstepper__panel" id="nPanel" hidden>
           <ol class="stepper stepper--vertical" id="nSteps" aria-label="Course setup"></ol>
         </div>
@@ -420,7 +440,6 @@ html[data-mode="dark"]{color-scheme:dark}
             <span class="mstepper__sum">
               <span class="mstepper__flowname">Course setup</span>
               <span class="mstepper__count" id="p-count">Step 2 of 7</span>
-              <span class="mprogress" aria-hidden="true"><i id="p-bar"></i></span>
             </span>
           </span>
           <svg class="mstepper__chev" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -428,6 +447,13 @@ html[data-mode="dark"]{color-scheme:dark}
                   stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+        <div class="pbar" id="p-pbar" role="progressbar"
+             aria-label="Course setup progress"
+             aria-valuemin="0" aria-valuemax="7" aria-valuenow="2"
+             aria-valuetext="Step 2 of 7">
+          <span class="pbar__track"><i class="pbar__meter" id="p-bar"></i></span>
+          <span class="pbar__value" id="p-pct">29%</span>
+        </div>
         <div class="mstepper__panel" id="pPanel" hidden>
           <ol class="stepper stepper--vertical" id="pSteps" aria-label="Course setup"></ol>
         </div>
@@ -689,8 +715,16 @@ function render(announce){
   });
 
   $('#m-ind').innerHTML = iconFor(idx);
-  $('#p-bar').style.width = Math.round(((idx + 1) / total) * 100) + '%';
-  $('#n-bar').style.width = Math.round(((idx + 1) / total) * 100) + '%';
+  const pct = Math.round(((idx + 1) / total) * 100);
+  ['p','n'].forEach(k => {
+    const bar = document.getElementById(k + '-bar');
+    const box = document.getElementById(k + '-pbar');
+    if(!bar || !box) return;
+    bar.style.width = pct + '%';
+    document.getElementById(k + '-pct').textContent = pct + '%';
+    box.setAttribute('aria-valuenow', String(idx + 1));
+    box.setAttribute('aria-valuetext', countTxt);
+  });
   renderSteppers();
 
   $$('[data-nav="back"]').forEach(b => b.disabled = idx === 0);
