@@ -267,10 +267,9 @@ html[data-mode="dark"]{color-scheme:dark}
 .alert__title{margin:0; font-family:var(--font-heading); font-weight:700;
   font-size:14px; line-height:1.4; color:var(--text-error)}
 .alert__body{margin:2px 0 0; font-size:14px; line-height:1.5; color:var(--text-base)}
-/* The collapsed summary has to carry the error too, not just grey label text */
+/* Only the indicator carries colour, exactly as on desktop. The count and the
+   title stay in their normal colour; the label says what is wrong in text. */
 .mstepper__bar.is-error .ind{color:var(--text-error)}
-.mstepper__bar.is-error .mstepper__count,
-.mstepper__bar.is-error .mstepper__title{color:var(--text-error)}
 
 /* =======================================================================
    Fake product chrome so the flow reads like a real page
