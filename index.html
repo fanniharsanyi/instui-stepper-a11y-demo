@@ -215,7 +215,10 @@ html[data-mode="dark"]{color-scheme:dark}
    The bar is named after the flow, not the step, so the accessible name
    describes what the toggle actually controls. The step title stays as the
    page heading, so nothing is announced twice. */
-.mstepper--flow{margin:0 0 16px}
+.mstepper--flow{margin:0 0 16px; gap:0;
+  background:var(--btn2-bg); border:1px solid var(--btn2-border); border-radius:12px}
+.mstepper--flow .mstepper__bar{background:transparent; border:0; border-radius:12px 12px 0 0;
+  padding-bottom:0}
 .mstepper--flow .mstepper__sum{gap:2px}
 .mstepper__flowname{font-family:var(--font-heading); font-weight:700; font-size:16px;
   line-height:1.25; color:var(--text-base)}
@@ -227,9 +230,13 @@ html[data-mode="dark"]{color-scheme:dark}
    borderRadius 8 · xSmallHeight 8 · trackColor transparent · borderColor
    #1d354f · meterColorInfo #1d354f · textColor #576773 · valuePadding 8 ·
    xSmallValueFontSize 16 · Atkinson Hyperlegible Next 400.
-   It sits OUTSIDE the toggle button on purpose — a progressbar nested inside
-   a button gets folded into the button's accessible name. */
+   It sits OUTSIDE the toggle <button> in the DOM but inside the same framed
+   box, so it reads as part of the bar. It cannot be a child of the button:
+   a button's descendants are presentational in ARIA, so a nested progressbar
+   is either ignored or flattened into the button's accessible name. */
 .pbar{display:flex; align-items:center; margin-top:8px}
+.mstepper--flow .pbar{margin:0; padding:4px var(--space-lg) var(--space-sm)}
+.mstepper--flow .mstepper__panel{padding:0 var(--space-lg) var(--space-lg)}
 .pbar__track{flex:1 0 0; height:8px; border-radius:8px; background:transparent;
   border:1px solid #1d354f; overflow:hidden}
 .pbar__meter{display:block; height:100%; border-radius:8px; background:#1d354f;
