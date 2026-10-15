@@ -255,6 +255,10 @@ html[data-mode="dark"]{color-scheme:dark}
    else in the flow is invisible until you expand. This alert sits outside the
    disclosure so it is visible in both states, names the step it belongs to,
    and says what to do next. role="alert" announces it when it appears. */
+.alert[hidden]{display:none}
+.summary__err{display:block; color:var(--text-error); font-size:14px; font-weight:700}
+.summary__err[hidden]{display:none}
+
 .alert{display:flex; gap:var(--space-sm); align-items:flex-start; width:100%;
   margin:var(--space-sm) 0; padding:var(--space-sm) var(--space-lg);
   border:1px solid var(--stroke-error); border-left-width:4px; border-radius:8px}
@@ -339,6 +343,7 @@ html[data-mode="dark"]{color-scheme:dark}
     </select></span>
   </label>
   <label><input type="checkbox" id="longChk"> Long titles (truncation)</label>
+  <label><input type="checkbox" id="alertChk" checked> App-level error alert</label>
   <label><input type="checkbox" id="greyChk"> Greyscale</label>
 </div>
 
@@ -390,6 +395,7 @@ html[data-mode="dark"]{color-scheme:dark}
               <span class="mstepper__count" id="m-count">Step 2 of 7</span>
               <span class="mstepper__title" id="m-steptitle">Step title</span>
               <span class="mstepper__label" id="m-steplabel">Optional label</span>
+              <span class="summary__err" id="m-steperr" hidden></span>
             </span>
           </span>
           <span class="vh" id="m-togglehint">Show all steps</span>
@@ -433,6 +439,7 @@ html[data-mode="dark"]{color-scheme:dark}
           <span class="mstepper__content">
             <span class="mstepper__sum">
               <span class="mstepper__flowname">Course setup</span>
+              <span class="summary__err" id="n-steperr" hidden></span>
             </span>
           </span>
           <span class="vh">step list</span>
@@ -478,6 +485,7 @@ html[data-mode="dark"]{color-scheme:dark}
             <span class="mstepper__sum">
               <span class="mstepper__flowname">Course setup</span>
               <span class="mstepper__count" id="p-count">Step 2 of 7</span>
+              <span class="summary__err" id="p-steperr" hidden></span>
             </span>
           </span>
           <svg class="mstepper__chev" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -543,6 +551,7 @@ html[data-mode="dark"]{color-scheme:dark}
                   <p class="compact__title" id="c-steptitle">Step title</p>
                   <p class="compact__label" id="c-steplabel">Optional label</p>
                 </div>
+                <p class="summary__err" id="c-steperr" hidden></p>
               </div>
               <div class="stepper--compact" id="cSteps" aria-hidden="true"></div>
             </div>
@@ -570,6 +579,7 @@ html[data-mode="dark"]{color-scheme:dark}
             <p class="compact__title" id="md-steptitle">Step title</p>
             <p class="compact__label" id="md-steplabel">Optional label</p>
           </div>
+          <p class="summary__err" id="md-steperr" hidden></p>
         </div>
         <div class="stepper--compact" id="mdSteps" aria-hidden="true"></div>
       </div>
@@ -647,6 +657,7 @@ let idx = 1;                 // zero-based current step
 let view = 'desktop';
 let showCount = false;
 let showLong = false;        // long titles, to show the 3-line clamp
+let showAlert = true;        // the app-owned alert, not part of the Stepper
 let errorAt = null;          // null | 'current' | index of a past step
 
 const $  = s => document.querySelector(s);
@@ -764,14 +775,28 @@ function render(announce){
   $('#m-ind').innerHTML = iconFor(idx);
   $('#mToggle').classList.toggle('is-error', hasError(idx));
 
+  /* 1.4.1 Use of Colour. Compact segments are aria-hidden and every collapsed
+     summary names only the current step, so an errored step would otherwise be
+     red and nothing else. The summary itself has to say so, in text, whether or
+     not the surrounding app renders an alert. */
+  ['m','n','p','c','md'].forEach(p => {
+    const el = document.getElementById(p + '-steperr');
+    if(!el) return;
+    el.hidden = errIdx < 0;
+    if(errIdx < 0) return;
+    el.textContent = errIdx === idx
+      ? 'This step has an error'
+      : 'Step ' + (errIdx + 1) + ' has an error';
+  });
+
   /* The error alert lives outside the stepper in every layout, so the message
      and the recovery action never depend on the step column's width, on the
      disclosure being open, or — in compact — on a colour-only segment. */
   ['d','m','c','md','p','n'].forEach(k => {
     const box = document.getElementById(k + '-alert');
     if(!box) return;
-    box.hidden = errIdx < 0;
-    if(errIdx < 0) return;
+    box.hidden = errIdx < 0 || !showAlert;
+    if(errIdx < 0 || !showAlert) return;
     document.getElementById(k + '-alerttitle').textContent =
       'Step ' + (errIdx + 1) + ' of ' + total + ', ' + stepAt(errIdx).title +
       (errIdx === idx ? '' : ' — earlier in this flow');
@@ -835,6 +860,9 @@ $('#modeSel').addEventListener('change', e =>
   document.documentElement.dataset.mode = e.target.value);
 $('#countChk').addEventListener('change', e => { showCount = e.target.checked; renderSteppers(); });
 $('#longChk').addEventListener('change', e => { showLong = e.target.checked; render(false); });
+/* The alert belongs to the consuming app, not the Stepper. Turning it off shows
+   what the component alone has to guarantee. */
+$('#alertChk').addEventListener('change', e => { showAlert = e.target.checked; render(false); });
 $('#errSel').addEventListener('change', e => {
   const v = e.target.value;
   errorAt = v === 'none' ? null : (v === 'current' ? 'current' : Number(v));
