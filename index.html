@@ -215,8 +215,9 @@ html[data-mode="dark"]{color-scheme:dark}
    The bar is named after the flow, not the step, so the accessible name
    describes what the toggle actually controls. The step title stays as the
    page heading, so nothing is announced twice. */
-.mstepper--flow{margin:0 0 16px; gap:0;
-  background:var(--btn2-bg); border:1px solid var(--btn2-border); border-radius:12px}
+.mstepper--flow{margin:0 0 16px; gap:0}
+.mstepper__head{background:var(--btn2-bg); border:1px solid var(--btn2-border);
+  border-radius:12px}
 .mstepper--flow .mstepper__bar{background:transparent; border:0; border-radius:12px 12px 0 0;
   padding-bottom:0}
 .mstepper--flow .mstepper__sum{gap:2px}
@@ -236,7 +237,7 @@ html[data-mode="dark"]{color-scheme:dark}
    is either ignored or flattened into the button's accessible name. */
 .pbar{display:flex; align-items:center; margin-top:8px}
 .mstepper--flow .pbar{margin:0; padding:4px var(--space-lg) var(--space-sm)}
-.mstepper--flow .mstepper__panel{padding:0 var(--space-lg) var(--space-lg)}
+.mstepper--flow .mstepper__panel{padding:var(--space-lg) 0 0}
 .pbar__track{flex:1 0 0; height:8px; border-radius:8px; background:transparent;
   border:1px solid #1d354f; overflow:hidden}
 .pbar__meter{display:block; height:100%; border-radius:8px; background:#1d354f;
@@ -402,6 +403,7 @@ html[data-mode="dark"]{color-scheme:dark}
       <p class="pagedesc" id="n-desc"></p>
 
       <div class="mstepper mstepper--flow">
+        <div class="mstepper__head">
         <button type="button" class="mstepper__bar" id="nToggle"
                 aria-expanded="false" aria-controls="nPanel">
           <span class="mstepper__content">
@@ -422,6 +424,7 @@ html[data-mode="dark"]{color-scheme:dark}
           <span class="pbar__track"><i class="pbar__meter" id="n-bar"></i></span>
           <span class="pbar__value" id="n-pct">29%</span>
         </div>
+        </div>
         <div class="mstepper__panel" id="nPanel" hidden>
           <ol class="stepper stepper--vertical" id="nSteps" aria-label="Course setup"></ol>
         </div>
@@ -441,6 +444,7 @@ html[data-mode="dark"]{color-scheme:dark}
     <!-- MOVED: bar sits above the heading and is named after the flow -->
     <div class="frame frame--mobile" id="mProposed" hidden>
       <div class="mstepper mstepper--flow">
+        <div class="mstepper__head">
         <button type="button" class="mstepper__bar" id="pToggle"
                 aria-expanded="false" aria-controls="pPanel">
           <span class="mstepper__content">
@@ -460,6 +464,7 @@ html[data-mode="dark"]{color-scheme:dark}
              aria-valuetext="Step 2 of 7">
           <span class="pbar__track"><i class="pbar__meter" id="p-bar"></i></span>
           <span class="pbar__value" id="p-pct">29%</span>
+        </div>
         </div>
         <div class="mstepper__panel" id="pPanel" hidden>
           <ol class="stepper stepper--vertical" id="pSteps" aria-label="Course setup"></ol>
