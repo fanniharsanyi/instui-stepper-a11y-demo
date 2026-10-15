@@ -256,7 +256,7 @@ html[data-mode="dark"]{color-scheme:dark}
    disclosure so it is visible in both states, names the step it belongs to,
    and says what to do next. role="alert" announces it when it appears. */
 .alert{display:flex; gap:var(--space-sm); align-items:flex-start; width:100%;
-  margin-top:var(--space-sm); padding:var(--space-sm) var(--space-lg);
+  margin:var(--space-sm) 0; padding:var(--space-sm) var(--space-lg);
   border:1px solid var(--stroke-error); border-left-width:4px; border-radius:8px}
 .alert__icon{flex:0 0 auto; width:20px; height:20px; color:var(--text-error)}
 .alert__title{margin:0; font-family:var(--font-heading); font-weight:700;
@@ -354,6 +354,7 @@ html[data-mode="dark"]{color-scheme:dark}
       <h1 class="pagetitle" id="d-title" tabindex="-1">Step title</h1>
       <p class="pagedesc" id="d-desc">Keep the step description brief and straightforward.</p>
       <ol class="stepper stepper--horizontal" id="hSteps" aria-label="Enrolment progress"></ol>
+      <div class="alertslot" data-alert="d"></div>
       <div class="card">
         <h3 id="d-cardtitle">Card title</h3>
         <p id="d-cardsub">Short card description</p>
@@ -402,16 +403,7 @@ html[data-mode="dark"]{color-scheme:dark}
         </div>
       </div>
 
-      <div class="alert" id="m-alert" role="alert" hidden>
-        <svg class="alert__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <circle cx="10" cy="10" r="8.25" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M10 6v5M10 13.6v.4" stroke="currentColor" stroke-width="1.5"
-                stroke-linecap="round"/>
-        </svg>
-        <div>
-          <p class="alert__title" id="m-alerttitle"></p>
-          <p class="alert__body" id="m-alertbody"></p>
-        </div>
+      <div class="alertslot" data-alert="m"></div>
       </div>
 
       <p class="pagedesc" id="m-desc"></p>
@@ -462,16 +454,7 @@ html[data-mode="dark"]{color-scheme:dark}
         </div>
       </div>
 
-      <div class="alert" id="n-alert" role="alert" hidden>
-        <svg class="alert__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <circle cx="10" cy="10" r="8.25" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M10 6v5M10 13.6v.4" stroke="currentColor" stroke-width="1.5"
-                stroke-linecap="round"/>
-        </svg>
-        <div>
-          <p class="alert__title" id="n-alerttitle"></p>
-          <p class="alert__body" id="n-alertbody"></p>
-        </div>
+      <div class="alertslot" data-alert="n"></div>
       </div>
 
       <div class="card">
@@ -515,16 +498,7 @@ html[data-mode="dark"]{color-scheme:dark}
         </div>
       </div>
 
-      <div class="alert" id="p-alert" role="alert" hidden>
-        <svg class="alert__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <circle cx="10" cy="10" r="8.25" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M10 6v5M10 13.6v.4" stroke="currentColor" stroke-width="1.5"
-                stroke-linecap="round"/>
-        </svg>
-        <div>
-          <p class="alert__title" id="p-alerttitle"></p>
-          <p class="alert__body" id="p-alertbody"></p>
-        </div>
+      <div class="alertslot" data-alert="p"></div>
       </div>
 
       <h1 class="pagetitle" id="p-title" tabindex="-1">Step title</h1>
@@ -572,6 +546,7 @@ html[data-mode="dark"]{color-scheme:dark}
               </div>
               <div class="stepper--compact" id="cSteps" aria-hidden="true"></div>
             </div>
+            <div class="alertslot" data-alert="c"></div>
             <div class="actions">
               <button class="btn btn--ghost" data-nav="back">Back</button>
               <button class="btn btn--primary" data-nav="next">Next</button>
@@ -598,6 +573,8 @@ html[data-mode="dark"]{color-scheme:dark}
         </div>
         <div class="stepper--compact" id="mdSteps" aria-hidden="true"></div>
       </div>
+
+      <div class="alertslot" data-alert="md"></div>
 
       <div class="card">
         <h3 id="md-cardtitle">Card title</h3>
@@ -787,10 +764,10 @@ function render(announce){
   $('#m-ind').innerHTML = iconFor(idx);
   $('#mToggle').classList.toggle('is-error', hasError(idx));
 
-  /* The error alert lives outside the disclosure, so a problem on any step is
-     visible whether the list is open or closed — and in Minimal/Moved, where
-     the bar only names the flow, it is the only visible signal at all. */
-  ['m','n','p'].forEach(k => {
+  /* The error alert lives outside the stepper in every layout, so the message
+     and the recovery action never depend on the step column's width, on the
+     disclosure being open, or — in compact — on a colour-only segment. */
+  ['d','m','c','md','p','n'].forEach(k => {
     const box = document.getElementById(k + '-alert');
     if(!box) return;
     box.hidden = errIdx < 0;
@@ -934,6 +911,21 @@ document.addEventListener('keydown', e => {
   const first = f[0], last = f[f.length - 1];
   if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
   else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+});
+
+/* One alert template, stamped into every layout's slot, so desktop, mobile,
+   compact and the modal all report an error the same way. */
+$$('[data-alert]').forEach(slot => {
+  const k = slot.dataset.alert;
+  slot.innerHTML =
+    '<div class="alert" id="' + k + '-alert" role="alert" hidden>' +
+      '<svg class="alert__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">' +
+        '<circle cx="10" cy="10" r="8.25" stroke="currentColor" stroke-width="1.5"/>' +
+        '<path d="M10 6v5M10 13.6v.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+      '</svg>' +
+      '<div><p class="alert__title" id="' + k + '-alerttitle"></p>' +
+      '<p class="alert__body" id="' + k + '-alertbody"></p></div>' +
+    '</div>';
 });
 
 render(false);
