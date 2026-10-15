@@ -260,13 +260,26 @@ html[data-mode="dark"]{color-scheme:dark}
 .summary__err{display:block; color:var(--text-muted); font-size:14px}
 .summary__err[hidden]{display:none}
 
-.alert{display:flex; gap:var(--space-sm); align-items:flex-start; width:100%;
-  margin:var(--space-sm) 0; padding:var(--space-sm) var(--space-lg);
-  border:1px solid var(--stroke-error); border-left-width:4px; border-radius:8px}
-.alert__icon{flex:0 0 auto; width:20px; height:20px; color:var(--text-error)}
-.alert__title{margin:0; font-family:var(--font-heading); font-weight:700;
-  font-size:14px; line-height:1.4; color:var(--text-error)}
-.alert__body{margin:2px 0 0; font-size:14px; line-height:1.5; color:var(--text-base)}
+/* InstUI Alert, variant="error". Values taken from the component source:
+   ui-alerts/src/Alert/v2/styles.ts and v1/theme.ts.
+     background  white1010      #FFFFFF
+     color       grey125125     #273540
+     border      widthMedium    2px solid, radiusMedium 4px
+     danger      red4570        #E62429  (border + icon block background)
+     icon        flex 0 0 2.5rem, white glyph at 1.125rem
+     content     spacing.small / spacing.medium, 1rem / 1.25 */
+.alert{display:flex; box-sizing:border-box; width:100%; min-width:12rem;
+  margin:12px 0; background:#FFFFFF; color:#273540;
+  border:2px solid #E62429; border-radius:4px}
+.alert__icon{flex:0 0 2.5rem; display:flex; align-items:center;
+  justify-content:center; font-size:1.125rem; color:#FFFFFF;
+  background:#E62429; border-right:2px solid #E62429; margin:-1px;
+  border-start-start-radius:4px; border-end-start-radius:4px}
+.alert__icon svg{width:1.125rem; height:1.125rem}
+.alert__content{flex:1; min-width:0.0625rem; padding:12px 24px;
+  font-size:16px; font-weight:400; line-height:1.25}
+.alert__title{margin:0; font-weight:700}
+.alert__body{margin:4px 0 0}
 /* Only the indicator carries colour, exactly as on desktop. The count and the
    title stay in their normal colour; the label says what is wrong in text. */
 .mstepper__bar.is-error .ind{color:var(--text-error)}
@@ -958,17 +971,25 @@ document.addEventListener('keydown', e => {
 });
 
 /* One alert template, stamped into every layout's slot, so desktop, mobile,
-   compact and the modal all report an error the same way. */
+   compact and the modal all report an error the same way. Structure mirrors
+   InstUI Alert: a coloured icon block, then the content. The icon is
+   aria-hidden and the variant is carried by a screen-reader-only label, the
+   same way the component does it — so "error" is never colour alone. */
 $$('[data-alert]').forEach(slot => {
   const k = slot.dataset.alert;
   slot.innerHTML =
     '<div class="alert" id="' + k + '-alert" role="alert" hidden>' +
-      '<svg class="alert__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">' +
-        '<circle cx="10" cy="10" r="8.25" stroke="currentColor" stroke-width="1.5"/>' +
-        '<path d="M10 6v5M10 13.6v.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
-      '</svg>' +
-      '<div><p class="alert__title" id="' + k + '-alerttitle"></p>' +
-      '<p class="alert__body" id="' + k + '-alertbody"></p></div>' +
+      '<div class="alert__icon">' +
+        '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+          '<circle cx="12" cy="12" r="9.25" stroke="currentColor" stroke-width="1.75"/>' +
+          '<path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>' +
+        '</svg>' +
+      '</div>' +
+      '<div class="alert__content">' +
+        '<span class="vh">Error. </span>' +
+        '<p class="alert__title" id="' + k + '-alerttitle"></p>' +
+        '<p class="alert__body" id="' + k + '-alertbody"></p>' +
+      '</div>' +
     '</div>';
 });
 
