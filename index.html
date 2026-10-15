@@ -256,7 +256,7 @@ html[data-mode="dark"]{color-scheme:dark}
    disclosure so it is visible in both states, names the step it belongs to,
    and says what to do next. role="alert" announces it when it appears. */
 .alert[hidden]{display:none}
-.summary__err{display:block; color:var(--text-error); font-size:14px; font-weight:700}
+.summary__err{display:block; color:var(--text-muted); font-size:14px}
 .summary__err[hidden]{display:none}
 
 .alert{display:flex; gap:var(--space-sm); align-items:flex-start; width:100%;
@@ -396,8 +396,7 @@ html[data-mode="dark"]{color-scheme:dark}
               <span class="mstepper__count" id="m-count">Step 2 of 7</span>
               <span class="mstepper__title" id="m-steptitle">Step title</span>
               <span class="mstepper__label" id="m-steplabel">Optional label</span>
-              <span class="summary__err" id="m-steperr" hidden></span>
-            </span>
+                          </span>
           </span>
           <span class="vh" id="m-togglehint">Show all steps</span>
           <svg class="mstepper__chev" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -546,8 +545,7 @@ html[data-mode="dark"]{color-scheme:dark}
                   <p class="compact__title" id="c-steptitle">Step title</p>
                   <p class="compact__label" id="c-steplabel">Optional label</p>
                 </div>
-                <p class="summary__err" id="c-steperr" hidden></p>
-              </div>
+                              </div>
               <div class="stepper--compact" id="cSteps" aria-hidden="true"></div>
             </div>
             <div class="actions">
@@ -574,8 +572,7 @@ html[data-mode="dark"]{color-scheme:dark}
             <p class="compact__title" id="md-steptitle">Step title</p>
             <p class="compact__label" id="md-steplabel">Optional label</p>
           </div>
-          <p class="summary__err" id="md-steperr" hidden></p>
-        </div>
+                  </div>
         <div class="stepper--compact" id="mdSteps" aria-hidden="true"></div>
       </div>
 
@@ -747,16 +744,30 @@ function renderSteppers(){
 const ERR_PANEL = {m:'#mPanel', n:'#nPanel', p:'#pPanel'};
 function syncSummaryErr(){
   const errIdx = errorIndex();
-  ['m','n','p','c','md'].forEach(k => {
-    const el = document.getElementById(k + '-steperr');
+  const txt = errIdx < 0 ? ''
+    : (errIdx === idx ? 'Card declined — needs attention'
+                      : 'Step ' + (errIdx + 1) + ' has an error');
+
+  /* Where a summary already has an optional-label slot, the error goes in it —
+     the slot describes the step, and the red indicator carries the emphasis.
+     1.4.1 needs the information to exist as text, not to be shouted in red. */
+  ['m','c','md'].forEach(k => {
+    const el = document.getElementById(k + '-steplabel');
     if(!el) return;
     const panel = ERR_PANEL[k] ? $(ERR_PANEL[k]) : null;
     const listHidden = !panel || panel.hidden;
-    el.hidden = errIdx < 0 || !listHidden;
-    if(el.hidden) return;
-    el.textContent = errIdx === idx
-      ? 'This step has an error'
-      : 'Step ' + (errIdx + 1) + ' has an error';
+    el.textContent = (txt && listHidden) ? txt : stepAt(idx).label;
+  });
+
+  /* Minimal and Moved name the flow, not the step, so they have no label slot
+     to borrow — they get their own line, styled the same as one. */
+  ['n','p'].forEach(k => {
+    const el = document.getElementById(k + '-steperr');
+    if(!el) return;
+    const panel = $(ERR_PANEL[k]);
+    const listHidden = !panel || panel.hidden;
+    el.hidden = !txt || !listHidden;
+    if(!el.hidden) el.textContent = txt;
   });
 }
 
