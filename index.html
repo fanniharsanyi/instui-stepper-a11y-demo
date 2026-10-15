@@ -331,7 +331,8 @@ html[data-mode="dark"]{color-scheme:dark}
   <section class="view" id="view-mobile" aria-label="Mobile layout">
     <div class="layoutswitch" role="group" aria-label="Which mobile layout to preview">
       <button type="button" data-mlayout="current" aria-pressed="true">Current</button>
-      <button type="button" data-mlayout="proposed" aria-pressed="false">Proposed</button>
+      <button type="button" data-mlayout="minimal" aria-pressed="false">Minimal</button>
+      <button type="button" data-mlayout="proposed" aria-pressed="false">Moved</button>
     </div>
 
     <div class="frame frame--mobile" id="mCurrent">
@@ -372,7 +373,45 @@ html[data-mode="dark"]{color-scheme:dark}
       </div>
     </div>
 
-    <!-- PROPOSED: bar sits above the heading and is named after the flow -->
+    <!-- MINIMAL: bar stays in the same slot as desktop, but is named after the
+         flow instead of repeating the step shown in the heading above it. -->
+    <div class="frame frame--mobile" id="mMinimal" hidden>
+      <p class="eyebrow" id="n-eyebrow">Step 2 of 7</p>
+      <h1 class="pagetitle" id="n-title" tabindex="-1">Step title</h1>
+      <p class="pagedesc" id="n-desc"></p>
+
+      <div class="mstepper mstepper--flow">
+        <button type="button" class="mstepper__bar" id="nToggle"
+                aria-expanded="false" aria-controls="nPanel">
+          <span class="mstepper__content">
+            <span class="mstepper__sum">
+              <span class="mstepper__flowname">Course setup</span>
+              <span class="mprogress" aria-hidden="true"><i id="n-bar"></i></span>
+            </span>
+          </span>
+          <span class="vh">step list</span>
+          <svg class="mstepper__chev" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="mstepper__panel" id="nPanel" hidden>
+          <ol class="stepper stepper--vertical" id="nSteps" aria-label="Course setup"></ol>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 id="n-cardtitle">Card title</h3>
+        <p id="n-cardsub">Short card description</p>
+        <p id="n-cardbody"></p>
+      </div>
+      <div class="actions">
+        <button class="btn btn--ghost" data-nav="back">Back</button>
+        <button class="btn btn--primary" data-nav="next">Next</button>
+      </div>
+    </div>
+
+    <!-- MOVED: bar sits above the heading and is named after the flow -->
     <div class="frame frame--mobile" id="mProposed" hidden>
       <div class="mstepper mstepper--flow">
         <button type="button" class="mstepper__bar" id="pToggle"
@@ -618,12 +657,13 @@ function buildSegments(host){
 }
 
 function renderSteppers(){
-  const h = $('#hSteps'), v = $('#vSteps'), p = $('#pSteps');
-  h.textContent = ''; v.textContent = ''; p.textContent = '';
+  const h = $('#hSteps'), v = $('#vSteps'), p = $('#pSteps'), n = $('#nSteps');
+  h.textContent = ''; v.textContent = ''; p.textContent = ''; n.textContent = '';
   for(let i = 0; i < total; i++){
     h.appendChild(buildStep(i));
     v.appendChild(buildStep(i));
     p.appendChild(buildStep(i));
+    n.appendChild(buildStep(i));
   }
   buildSegments($('#cSteps'));
   buildSegments($('#mdSteps'));
@@ -635,7 +675,7 @@ function render(announce){
   const errIdx = errorIndex();
 
   // compact / modal / mobile summaries always show the count — showStepCount is ignored here
-  ['d','m','c','md','p'].forEach(p => {
+  ['d','m','c','md','p','n'].forEach(p => {
     const set = (id, txt) => { const el = document.getElementById(p + '-' + id); if(el) el.textContent = txt; };
     set('eyebrow', countTxt);
     set('title', s.title);
@@ -650,6 +690,7 @@ function render(announce){
 
   $('#m-ind').innerHTML = iconFor(idx);
   $('#p-bar').style.width = Math.round(((idx + 1) / total) * 100) + '%';
+  $('#n-bar').style.width = Math.round(((idx + 1) / total) * 100) + '%';
   renderSteppers();
 
   $$('[data-nav="back"]').forEach(b => b.disabled = idx === 0);
@@ -663,6 +704,7 @@ function render(announce){
   if(errIdx > -1 && errIdx !== idx){
     if(mToggle.getAttribute('aria-expanded') === 'false') setExpanded(true);
     if(pToggle.getAttribute('aria-expanded') === 'false') setPExpanded(true);
+    if(nToggle.getAttribute('aria-expanded') === 'false') setNExpanded(true);
   }
 
   if(announce){
@@ -725,13 +767,25 @@ function setPExpanded(open){
 pToggle.addEventListener('click', () =>
   setPExpanded(pToggle.getAttribute('aria-expanded') !== 'true'));
 
-/* ---- current vs proposed mobile layout ---- */
+/* ---- minimal mobile disclosure ----
+   Same slot as the current layout, but the bar is named "Course setup, step
+   list" — the flow, not the step. Nothing in it repeats the eyebrow or the
+   heading, and the name is stable across expand and collapse. */
+const nToggle = $('#nToggle'), nPanel = $('#nPanel');
+function setNExpanded(open){
+  nToggle.setAttribute('aria-expanded', String(open));
+  nPanel.hidden = !open;
+}
+nToggle.addEventListener('click', () =>
+  setNExpanded(nToggle.getAttribute('aria-expanded') !== 'true'));
+
+/* ---- current vs minimal vs moved mobile layout ---- */
+const M_FRAMES = { current:'#mCurrent', minimal:'#mMinimal', proposed:'#mProposed' };
 $$('[data-mlayout]').forEach(btn => {
   btn.addEventListener('click', () => {
-    const proposed = btn.dataset.mlayout === 'proposed';
+    const pick = btn.dataset.mlayout;
     $$('[data-mlayout]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
-    $('#mCurrent').hidden = proposed;
-    $('#mProposed').hidden = !proposed;
+    Object.keys(M_FRAMES).forEach(k => { $(M_FRAMES[k]).hidden = k !== pick; });
   });
 });
 
