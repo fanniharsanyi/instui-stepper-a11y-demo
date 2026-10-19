@@ -435,12 +435,12 @@ html[data-mode="dark"]{color-scheme:dark}
       </div>
     </div>
 
-    <!-- MINIMAL: bar stays in the same slot as desktop, but is named after the
-         flow instead of repeating the step shown in the heading above it. -->
+    <!-- MINIMAL: the page heading names the flow and describes it. The bar
+         carries nothing but the flow name and the disclosure — no step count,
+         no progress bar — so every detail lives at page level. -->
     <div class="frame frame--mobile" id="mMinimal" hidden>
-      <p class="eyebrow" id="n-eyebrow">Step 2 of 7</p>
-      <h1 class="pagetitle" id="n-title" tabindex="-1">Step title</h1>
-      <p class="pagedesc" id="n-desc"></p>
+      <h1 class="pagetitle" id="n-title" tabindex="-1">Course setup</h1>
+      <p class="pagedesc" id="n-desc">Complete these steps to set up your course.</p>
 
       <div class="alertslot" data-alert="n"></div>
       <div class="mstepper mstepper--flow">
@@ -459,13 +459,6 @@ html[data-mode="dark"]{color-scheme:dark}
                   stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <div class="pbar" id="n-pbar" role="progressbar"
-             aria-label="Course setup progress"
-             aria-valuemin="0" aria-valuemax="7" aria-valuenow="2"
-             aria-valuetext="Step 2 of 7">
-          <span class="pbar__track"><i class="pbar__meter" id="n-bar"></i></span>
-          <span class="pbar__value" id="n-pct">29%</span>
-        </div>
         </div>
         <div class="mstepper__panel" id="nPanel" hidden>
           <ol class="stepper stepper--vertical" id="nSteps" aria-label="Course setup"></ol>
@@ -790,12 +783,14 @@ function render(announce){
   const errIdx = errorIndex();
 
   // compact / modal / mobile summaries always show the count — showStepCount is ignored here
-  // 'd' and 'm' head their page with the flow name, not the step, so they skip 'title'
+  // 'd', 'm' and 'n' head their page with the flow, not the step, so they skip
+  // 'title'. 'n' also describes the flow rather than the step, so it skips 'desc'.
+  const FLOW_HEADED = ['d','m','n'];
   ['d','m','c','md','p','n'].forEach(p => {
     const set = (id, txt) => { const el = document.getElementById(p + '-' + id); if(el) el.textContent = txt; };
     set('eyebrow', countTxt);
-    if(p !== 'm' && p !== 'd') set('title', s.title);
-    set('desc', s.desc);
+    if(!FLOW_HEADED.includes(p)) set('title', s.title);
+    if(p !== 'n') set('desc', s.desc);
     set('cardtitle', 'Card title');
     set('cardsub', 'Short card description');
     set('cardbody', BODY);
@@ -831,7 +826,7 @@ function render(announce){
       (errIdx === idx ? ' to continue.' : ', then come back to this step.');
   });
   const pct = Math.round(((idx + 1) / total) * 100);
-  ['p','n'].forEach(k => {
+  ['p'].forEach(k => {
     const bar = document.getElementById(k + '-bar');
     const box = document.getElementById(k + '-pbar');
     if(!bar || !box) return;
