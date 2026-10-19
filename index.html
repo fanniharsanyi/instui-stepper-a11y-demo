@@ -219,8 +219,16 @@ html[data-mode="dark"]{color-scheme:dark}
 .mstepper--flow{margin:0 0 16px; gap:0}
 .mstepper__head{background:var(--btn2-bg); border:1px solid var(--btn2-border);
   border-radius:12px}
-.mstepper--flow .mstepper__bar{background:transparent; border:0; border-radius:12px 12px 0 0;
-  padding-bottom:0}
+/* The bar drops its bottom padding only when a progress bar sits under it and
+   supplies that space itself. Minimal has no progress bar, so it keeps the
+   padding and stays vertically centred. */
+.mstepper--flow .mstepper__bar{background:transparent; border:0; border-radius:12px 12px 0 0}
+.mstepper--flow .mstepper__bar:has(+ .pbar){padding-bottom:0}
+/* With no progress bar under it the bar is a single line, which left the
+   control 36px tall. 12px top and bottom brings it to 44px — Apple's and
+   WCAG 2.5.5's touch target, and it stops the bar looking top-heavy. */
+.mstepper--flow .mstepper__head:not(:has(.pbar)) .mstepper__bar{border-radius:12px;
+  padding-top:12px; padding-bottom:12px}
 .mstepper--flow .mstepper__sum{gap:2px}
 .mstepper__flowname{font-family:var(--font-heading); font-weight:700; font-size:16px;
   line-height:1.25; color:var(--text-base)}
