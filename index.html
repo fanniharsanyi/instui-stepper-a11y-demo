@@ -369,7 +369,7 @@ html[data-mode="dark"]{color-scheme:dark}
   <section class="view is-active" id="view-desktop" aria-label="Desktop layout">
     <div class="frame frame--desktop">
       <p class="eyebrow" id="d-eyebrow">Step 2 of 7</p>
-      <h1 class="pagetitle" id="d-title" tabindex="-1">Step title</h1>
+      <h1 class="pagetitle" id="d-title" tabindex="-1">Course setup</h1>
       <p class="pagedesc" id="d-desc">Keep the step description brief and straightforward.</p>
       <div class="alertslot" data-alert="d"></div>
       <ol class="stepper stepper--horizontal" id="hSteps" aria-label="Enrolment progress"></ol>
@@ -790,11 +790,11 @@ function render(announce){
   const errIdx = errorIndex();
 
   // compact / modal / mobile summaries always show the count — showStepCount is ignored here
-  // 'm' heads its page with the flow name, not the step, so it skips 'title'
+  // 'd' and 'm' head their page with the flow name, not the step, so they skip 'title'
   ['d','m','c','md','p','n'].forEach(p => {
     const set = (id, txt) => { const el = document.getElementById(p + '-' + id); if(el) el.textContent = txt; };
     set('eyebrow', countTxt);
-    if(p !== 'm') set('title', s.title);
+    if(p !== 'm' && p !== 'd') set('title', s.title);
     set('desc', s.desc);
     set('cardtitle', 'Card title');
     set('cardsub', 'Short card description');
